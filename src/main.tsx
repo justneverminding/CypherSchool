@@ -20,7 +20,7 @@ type LearnerProfile = {
 }
 
 const profileStorageKey = 'cypherschool.profile'
-const builtLessonIds = ['01-case-for-privacy', '02-what-your-money-reveals', '03-tools-of-privacy']
+const builtLessonIds = ['01-case-for-privacy', '02-what-your-money-reveals', '03-tools-of-privacy', '04-prove-without-revealing']
 
 const lessons: Lesson[] = [
   {
@@ -80,6 +80,13 @@ const lessons: Lesson[] = [
     mark: 'S',
   },
 ]
+
+function ZcashMark() {
+  return <svg className="zcash-mark" viewBox="0 0 44 44" aria-label="Zcash">
+    <circle cx="22" cy="22" r="18" />
+    <path d="M14 14h16L14 30h16" />
+  </svg>
+}
 
 function App() {
   const [profile, setProfile] = useState<LearnerProfile | null>(null)
@@ -279,7 +286,7 @@ function App() {
   function goToNextPath(nextLessonId: string) {
     setSelectedAnswer('')
     setManifestoStep(0)
-    if (nextLessonId === '02-what-your-money-reveals' || nextLessonId === '03-tools-of-privacy') {
+    if (nextLessonId === '02-what-your-money-reveals' || nextLessonId === '03-tools-of-privacy' || nextLessonId === '04-prove-without-revealing') {
       setActiveLessonId(nextLessonId)
       return
     }
@@ -287,8 +294,8 @@ function App() {
     window.setTimeout(() => document.querySelector('#curriculum')?.scrollIntoView({ behavior: 'smooth' }), 0)
   }
 
-  async function completeLesson(lessonId: '01-case-for-privacy' | '02-what-your-money-reveals' | '03-tools-of-privacy') {
-    const correctAnswer = lessonId === '01-case-for-privacy' ? 'choice' : lessonId === '02-what-your-money-reveals' ? 'choice-two' : 'choice-three'
+  async function completeLesson(lessonId: '01-case-for-privacy' | '02-what-your-money-reveals' | '03-tools-of-privacy' | '04-prove-without-revealing') {
+    const correctAnswer = lessonId === '01-case-for-privacy' ? 'choice' : lessonId === '02-what-your-money-reveals' ? 'choice-two' : lessonId === '03-tools-of-privacy' ? 'choice-three' : 'choice-four'
     if (!profile || selectedAnswer !== correctAnswer) return
     setIsSavingLesson(true)
     setLessonError('')
@@ -371,6 +378,16 @@ function App() {
         </section>
       </main>
     )
+  }
+
+  if (activeLessonId === '04-prove-without-revealing') {
+    const isComplete = completedLessonIds.includes('04-prove-without-revealing')
+    const pages = [
+      { title: <>A fact can be<br /><em>enough.</em></>, body: 'Sometimes a person needs to prove a condition is true without sharing the sensitive information behind it.', note: 'Zero-knowledge proofs separate what must be verified from what must be revealed.' },
+      { title: <>Prove the threshold.<br />Keep the number <em>private.</em></>, body: 'A person can prove that a private balance is above 100 USDC. The verifier receives a valid yes or no—not the exact balance, identity, or transaction history.', note: 'A valid proof answers the question without handing over the underlying data.' },
+    ]
+    const page = pages[manifestoStep]
+    return <main className="lesson-screen"><nav className="lesson-nav shell"><button className="lesson-back" type="button" onClick={() => setActiveLessonId(null)}>← BACK TO PATH</button><span>CHAPTER 04 / 07</span><span>{profile?.xp ?? 0} XP</span></nav><section className="manifesto-shell shell"><div className="manifesto-rail">{[0, 1, 2].map((step) => <span className={step <= manifestoStep ? 'active' : ''} key={step} />)}</div>{manifestoStep < 2 && page ? <article className="manifesto-page"><div><p className="eyebrow"><span />PROVE WITHOUT REVEALING</p><p className="lesson-kicker">// 04.0{manifestoStep + 1}</p><h1>{page.title}</h1></div><div className="manifesto-reading"><p>{page.body}</p><aside>{page.note}</aside>{manifestoStep > 0 && <button className="review-notes" type="button" onClick={() => setManifestoStep((step) => step - 1)}>← PREVIOUS NOTE</button>}<button className="primary-button" type="button" onClick={() => setManifestoStep((step) => step + 1)}>CONTINUE <span>→</span></button></div></article> : <article className="manifesto-page manifesto-check"><div><p className="eyebrow"><span />ZERO-KNOWLEDGE CHECK</p><p className="lesson-kicker">// 04.03</p><h1 className="proof-question-title">Juno proves she has<br /><em>enough.</em> What stays private?</h1></div><div className="manifesto-reading">{isComplete ? <><button className="review-notes" type="button" onClick={() => setManifestoStep(1)}>← REVIEW PREVIOUS NOTES</button><div className="answer-options recorded-answer"><button className="selected" type="button" disabled>Her exact balance.</button><button type="button" disabled>Whether her balance is above 100 USDC.</button><button type="button" disabled>Whether the proof is valid.</button></div><aside>Chapter complete. +100 XP and Medal 04 are synced to your learning profile.</aside><div className="completion-actions"><button className="primary-button" type="button" onClick={() => goToNextPath('05-zcash-private-money')}>NEXT PATH <span>→</span></button><button className="path-home-button" type="button" onClick={() => setActiveLessonId(null)}>RETURN TO MAIN HOME</button></div></> : <><button className="review-notes" type="button" onClick={() => setManifestoStep(1)}>← REVIEW PREVIOUS NOTES</button><div className="answer-options"><button className={selectedAnswer === 'choice-four' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('choice-four')}>Her exact balance.</button><button className={selectedAnswer === 'wrong-seven' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('wrong-seven')}>Whether her balance is above 100 USDC.</button><button className={selectedAnswer === 'wrong-eight' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('wrong-eight')}>Whether the proof is valid.</button></div>{selectedAnswer && selectedAnswer !== 'choice-four' && <p className="answer-note">Not quite. The proof confirms that Juno has enough; her exact balance stays private.</p>}<button className="primary-button" type="button" disabled={selectedAnswer !== 'choice-four' || isSavingLesson} onClick={() => completeLesson('04-prove-without-revealing')}>{isSavingLesson ? 'SAVING…' : 'COMPLETE CHAPTER'} <span>→</span></button></>}</div></article>}</section></main>
   }
 
   if (activeLessonId === '01-case-for-privacy') {
@@ -518,9 +535,9 @@ function App() {
 
         <div className="lesson-grid">
           {lessons.map((lesson) => {
-            const isAvailable = lesson.id === '01-case-for-privacy' || (lesson.id === '02-what-your-money-reveals' && isLessonComplete) || (lesson.id === '03-tools-of-privacy' && completedLessonIds.includes('02-what-your-money-reveals'))
+            const isAvailable = lesson.id === '01-case-for-privacy' || (lesson.id === '02-what-your-money-reveals' && isLessonComplete) || (lesson.id === '03-tools-of-privacy' && completedLessonIds.includes('02-what-your-money-reveals')) || (lesson.id === '04-prove-without-revealing' && completedLessonIds.includes('03-tools-of-privacy'))
             return <article className={`lesson-card ${isAvailable ? 'ready' : 'locked'}`} key={lesson.number}>
-              <div className="lesson-meta"><span>LAB {lesson.number}</span><span className="lesson-mark">{lesson.mark}</span></div>
+              <div className="lesson-meta"><span>LAB {lesson.number}</span><span className="lesson-mark">{lesson.id === '05-zcash-private-money' ? <ZcashMark /> : lesson.mark}</span></div>
               <h3>{lesson.title}</h3>
               <p>{lesson.description}</p>
               <button className="lesson-action" type="button" disabled={!isAvailable} onClick={isAvailable ? () => beginLesson(lesson.id) : undefined}>
