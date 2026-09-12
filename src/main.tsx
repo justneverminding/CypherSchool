@@ -23,24 +23,52 @@ const profileStorageKey = 'cypherschool.profile'
 const lessons: Lesson[] = [
   {
     number: '01',
-    title: 'Financial Exposure',
-    description: 'Follow a fictional payment trail and see what public activity can quietly reveal.',
+    title: 'The Case for Privacy',
+    description: 'Why privacy matters.',
     status: 'ready',
-    mark: '↗',
+    mark: '◌',
   },
   {
     number: '02',
+    title: 'What Your Money Reveals',
+    description: 'What leaks without it.',
+    status: 'locked',
+    mark: '↗',
+  },
+  {
+    number: '03',
+    title: 'The Tools of Privacy',
+    description: 'Cryptographic foundations.',
+    status: 'locked',
+    mark: '✦',
+  },
+  {
+    number: '04',
     title: 'Prove Without Revealing',
-    description: 'Learn the shape of a zero-knowledge proof by protecting a secret in plain sight.',
+    description: 'Zero knowledge.',
     status: 'locked',
     mark: '◇',
   },
   {
-    number: '03',
-    title: 'Private Computation',
-    description: 'Explore how a useful answer can exist without exposing the underlying data.',
+    number: '05',
+    title: 'Zcash & Private Money',
+    description: 'Private money with Zcash.',
     status: 'locked',
-    mark: '✦',
+    mark: '₿',
+  },
+  {
+    number: '06',
+    title: 'Arcium & Private Computation',
+    description: 'Private computation with Arcium.',
+    status: 'locked',
+    mark: '⌁',
+  },
+  {
+    number: '07',
+    title: 'Stealf',
+    description: 'Stealf as the practical application.',
+    status: 'locked',
+    mark: 'S',
   },
 ]
 
@@ -223,9 +251,9 @@ function App() {
         <div className="section-heading">
           <div>
             <p className="eyebrow"><span />THE FIRST PATH</p>
-            <h2>Three lessons.<br />One clearer view.</h2>
+            <h2>Seven chapters.<br />One clearer view.</h2>
           </div>
-          <p className="section-summary">Begin with the visible traces of a transaction. Finish by seeing how a private answer can be computed.</p>
+          <p className="section-summary">From why privacy matters to Stealf as a practical application—one short, connected learning path.</p>
         </div>
 
         <div className="lesson-grid">
