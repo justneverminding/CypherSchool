@@ -91,7 +91,7 @@ function App() {
   const [isEntryChoiceOpen, setIsEntryChoiceOpen] = useState(false)
   const [recoveryCodeInput, setRecoveryCodeInput] = useState('')
   const [isSavingProfile, setIsSavingProfile] = useState(false)
-  const [isLessonOpen, setIsLessonOpen] = useState(false)
+  const [activeLessonId, setActiveLessonId] = useState<string | null>(null)
   const [manifestoStep, setManifestoStep] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState('')
   const [isSavingLesson, setIsSavingLesson] = useState(false)
@@ -224,7 +224,7 @@ function App() {
       window.localStorage.setItem(profileStorageKey, JSON.stringify(nextProfile))
       setProfile(nextProfile)
       setIsAliasDialogOpen(false)
-      setIsLessonOpen(true)
+      setActiveLessonId('01-case-for-privacy')
     } catch {
       setAliasError('The learning service is unavailable. Please try again shortly.')
     } finally {
@@ -235,15 +235,16 @@ function App() {
   function enterLab() {
     setIsAliasDialogOpen(false)
     setNewRecoveryCode(null)
-    setIsLessonOpen(true)
+    setActiveLessonId('01-case-for-privacy')
   }
 
-  function beginLesson() {
+  function beginLesson(requestedLessonId = '01-case-for-privacy') {
     if (profile) {
-      setManifestoStep(isLessonComplete ? 3 : 0)
+      const nextLessonId = requestedLessonId === '01-case-for-privacy' && isLessonComplete ? '02-what-your-money-reveals' : requestedLessonId
+      setManifestoStep(0)
       setSelectedAnswer('')
       setLessonError('')
-      setIsLessonOpen(true)
+      setActiveLessonId(nextLessonId)
       return
     }
     openEntryChoice()
@@ -255,11 +256,12 @@ function App() {
     setCompletedLessonIds([])
     setIsLessonComplete(false)
     setIsProfileOpen(false)
-    setIsLessonOpen(false)
+    setActiveLessonId(null)
   }
 
-  async function completeLesson() {
-    if (!profile || selectedAnswer !== 'choice') return
+  async function completeLesson(lessonId: '01-case-for-privacy' | '02-what-your-money-reveals') {
+    const correctAnswer = lessonId === '01-case-for-privacy' ? 'choice' : 'choice-two'
+    if (!profile || selectedAnswer !== correctAnswer) return
     setIsSavingLesson(true)
     setLessonError('')
     try {
@@ -270,7 +272,7 @@ function App() {
           'x-cypherschool-profile': profile.id,
           'x-cypherschool-session': profile.sessionToken,
         },
-        body: JSON.stringify({ lessonId: '01-case-for-privacy', completed: true, score: 100, xpEarned: 100 }),
+        body: JSON.stringify({ lessonId, completed: true, score: 100, xpEarned: 100 }),
       })
       const result = await response.json() as { error?: string; profile?: Omit<LearnerProfile, 'sessionToken'> }
       if (!response.ok || !result.profile) {
@@ -281,8 +283,13 @@ function App() {
       progressRequestId.current += 1
       window.localStorage.setItem(profileStorageKey, JSON.stringify(nextProfile))
       setProfile(nextProfile)
-      setIsLessonComplete(true)
-      setCompletedLessonIds((lessonIds) => lessonIds.includes('01-case-for-privacy') ? lessonIds : [...lessonIds, '01-case-for-privacy'])
+      if (lessonId === '01-case-for-privacy') setIsLessonComplete(true)
+      setCompletedLessonIds((lessonIds) => lessonIds.includes(lessonId) ? lessonIds : [...lessonIds, lessonId])
+      if (lessonId === '01-case-for-privacy') {
+        setSelectedAnswer('')
+        setManifestoStep(0)
+        setActiveLessonId('02-what-your-money-reveals')
+      }
     } catch {
       setLessonError('The learning service is unavailable. Please try again shortly.')
     } finally {
@@ -293,7 +300,31 @@ function App() {
   const completedChapters = completedLessonIds.length
   const chaptersRemaining = lessons.length - completedChapters
 
-  if (isLessonOpen) {
+  if (activeLessonId === '02-what-your-money-reveals') {
+    const exposurePages = [
+      { eyebrow: 'WHAT YOUR MONEY REVEALS', title: <>Every payment<br />leaves <em>a clue.</em></>, body: 'On a public ledger, an observer can often see a sender, recipient, amount, and time. Each entry may feel small on its own.', note: 'The risk is rarely in one transaction, but in the pattern they create together.' },
+      { eyebrow: 'A FICTIONAL TRAIL', title: <>Patterns make<br />context <em>visible.</em></>, body: 'Meet Juno. These fictional payments are not private data—they are a learning exercise about what an outside observer could connect when timing, counterparties, and amounts repeat.', note: 'A public trail can suggest routines and relationships without proving every detail.' },
+    ]
+    const exposurePage = exposurePages[manifestoStep]
+    const secondComplete = completedLessonIds.includes('02-what-your-money-reveals')
+    return (
+      <main className="lesson-screen exposure-screen">
+        <nav className="lesson-nav shell" aria-label="Lesson navigation"><button className="lesson-back" type="button" onClick={() => setActiveLessonId(null)}>← BACK TO PATH</button><span>CHAPTER 02 / 07</span><span>{profile?.xp ?? 0} XP</span></nav>
+        <section className="manifesto-shell shell">
+          <div className="manifesto-rail" aria-label={`Page ${Math.min(manifestoStep + 1, 3)} of 3`}>{[0, 1, 2].map((step) => <span className={step <= manifestoStep ? 'active' : ''} key={step} />)}</div>
+          {manifestoStep < 2 && exposurePage ? <article className="manifesto-page">
+            <div><p className="eyebrow"><span />{exposurePage.eyebrow}</p><p className="lesson-kicker">// 02.0{manifestoStep + 1}</p><h1>{exposurePage.title}</h1></div>
+            <div className="manifesto-reading">{manifestoStep === 1 && <div className="transaction-trail"><div><span>MON · 08:12</span><b>18 USDC → GREEN RAIL</b></div><div><span>TUE · 12:40</span><b>42 USDC → CENTRAL CLINIC</b></div><div><span>FRI · 19:05</span><b>18 USDC → GREEN RAIL</b></div></div>}<p>{exposurePage.body}</p><aside>{exposurePage.note}</aside>{manifestoStep > 0 && <button className="review-notes" type="button" onClick={() => setManifestoStep((step) => step - 1)}>← PREVIOUS NOTE</button>}<button className="primary-button" type="button" onClick={() => setManifestoStep((step) => step + 1)}>CONTINUE <span aria-hidden="true">→</span></button></div>
+          </article> : <article className="manifesto-page manifesto-check">
+            <div><p className="eyebrow"><span />PATTERN CHECK</p><p className="lesson-kicker">// 02.03</p><h1>What can an<br /><em>observer infer?</em></h1></div>
+            <div className="manifesto-reading">{secondComplete ? <><p>You completed What Your Money Reveals.</p><aside>+100 XP and Medal 02 synced to your anonymous learning profile.</aside><button className="primary-button" type="button" onClick={() => setActiveLessonId(null)}>RETURN TO PATH <span aria-hidden="true">→</span></button></> : <><button className="review-notes" type="button" onClick={() => setManifestoStep(1)}>← REVIEW PREVIOUS NOTES</button><div className="answer-options"><button className={selectedAnswer === 'choice-two' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('choice-two')}>Juno may have a regular routine around Central Square.</button><button className={selectedAnswer === 'wrong-three' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('wrong-three')}>Juno’s medical diagnosis is publicly known.</button><button className={selectedAnswer === 'wrong-four' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('wrong-four')}>Nothing meaningful can be learned from public payments.</button></div>{selectedAnswer && selectedAnswer !== 'choice-two' && <p className="answer-note">Not quite. Patterns can suggest a routine, but they do not prove a diagnosis or reveal everything about a person.</p>}{lessonError && <p className="alias-error" role="alert">{lessonError}</p>}<button className="primary-button" type="button" disabled={selectedAnswer !== 'choice-two' || isSavingLesson} onClick={() => completeLesson('02-what-your-money-reveals')}>{isSavingLesson ? 'SAVING…' : 'COMPLETE CHAPTER'} <span aria-hidden="true">→</span></button></>}</div>
+          </article>}
+        </section>
+      </main>
+    )
+  }
+
+  if (activeLessonId === '01-case-for-privacy') {
     const pages = [
       { eyebrow: 'THE CASE FOR PRIVACY', title: <>Privacy is not<br /><em>suspicion.</em></>, body: 'It is the ability to move through ordinary life without every choice becoming a permanent public record.', note: 'Privacy lets people decide what a moment means—and who gets to see it.' },
       { eyebrow: 'THE QUIET TRAIL', title: <>Information creates<br /><em>an outline.</em></>, body: 'A payment can reveal where someone spends time, what they can afford, who they support, or when their circumstances change.', note: 'One data point can be harmless. A pattern of them can be intimate.' },
@@ -303,7 +334,7 @@ function App() {
     return (
       <main className="lesson-screen">
         <nav className="lesson-nav shell" aria-label="Lesson navigation">
-          <button className="lesson-back" type="button" onClick={() => setIsLessonOpen(false)}>← BACK TO PATH</button>
+          <button className="lesson-back" type="button" onClick={() => setActiveLessonId(null)}>← BACK TO PATH</button>
           <span>CHAPTER 01 / 07</span>
           <span>{profile?.xp ?? 0} XP</span>
         </nav>
@@ -321,6 +352,7 @@ function App() {
               <div className="manifesto-reading">
                 <p>{page.body}</p>
                 <aside>{page.note}</aside>
+                {manifestoStep > 0 && <button className="review-notes" type="button" onClick={() => setManifestoStep((step) => step - 1)}>← PREVIOUS NOTE</button>}
                 <button className="primary-button" type="button" onClick={() => setManifestoStep((step) => step + 1)}>CONTINUE <span aria-hidden="true">→</span></button>
               </div>
             </article>
@@ -333,10 +365,12 @@ function App() {
               </div>
               <div className="manifesto-reading">
                 {isLessonComplete ? <>
-                  <p>You completed The Case for Privacy.</p>
-                  <aside>+100 XP synced to your anonymous learning profile.</aside>
-                  <button className="primary-button" type="button" onClick={() => setIsLessonOpen(false)}>RETURN TO PATH <span aria-hidden="true">→</span></button>
+                  <div className="answer-options recorded-answer" aria-label="Recorded answer"><button className="selected" type="button" disabled>The ability to choose what we reveal.</button><button type="button" disabled>A way to avoid responsibility.</button><button type="button" disabled>A reason to hide ordinary activity.</button></div>
+                  <p className="answer-note answer-recorded">ANSWER RECORDED — Privacy gives people the agency to choose what they reveal.</p>
+                  <aside>Chapter complete. +100 XP and Medal 01 are synced to your learning profile.</aside>
+                  <button className="primary-button" type="button" onClick={() => setActiveLessonId(null)}>RETURN TO PATH <span aria-hidden="true">→</span></button>
                 </> : <>
+                  <button className="review-notes" type="button" onClick={() => setManifestoStep(2)}>← REVIEW PREVIOUS NOTES</button>
                   <div className="answer-options">
                     <button className={selectedAnswer === 'choice' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('choice')}>The ability to choose what we reveal.</button>
                     <button className={selectedAnswer === 'wrong-one' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('wrong-one')}>A way to avoid responsibility.</button>
@@ -344,7 +378,7 @@ function App() {
                   </div>
                   {selectedAnswer && selectedAnswer !== 'choice' && <p className="answer-note">Try again. Privacy is about control and agency, not avoiding accountability.</p>}
                   {lessonError && <p className="alias-error" role="alert">{lessonError}</p>}
-                  <button className="primary-button" type="button" disabled={selectedAnswer !== 'choice' || isSavingLesson} onClick={completeLesson}>{isSavingLesson ? 'SAVING…' : 'COMPLETE CHAPTER'} <span aria-hidden="true">→</span></button>
+                  <button className="primary-button" type="button" disabled={selectedAnswer !== 'choice' || isSavingLesson} onClick={() => completeLesson('01-case-for-privacy')}>{isSavingLesson ? 'SAVING…' : 'COMPLETE CHAPTER'} <span aria-hidden="true">→</span></button>
                 </>}
               </div>
             </article>
@@ -395,7 +429,7 @@ function App() {
             Short, interactive lessons for understanding what financial data reveals—and what cryptography can keep private.
           </p>
           <div className="hero-actions">
-            <button className="primary-button" type="button" onClick={beginLesson}>
+            <button className="primary-button" type="button" onClick={() => beginLesson()}>
               {profile ? 'CONTINUE YOUR PATH' : 'ENTER THE LAB'} <span aria-hidden="true">→</span>
             </button>
             <a className="text-link" href="#curriculum">EXPLORE THE PATH <span aria-hidden="true">↓</span></a>
@@ -433,16 +467,17 @@ function App() {
         </div>
 
         <div className="lesson-grid">
-          {lessons.map((lesson) => (
-            <article className={`lesson-card ${lesson.status}`} key={lesson.number}>
+          {lessons.map((lesson) => {
+            const isAvailable = lesson.id === '01-case-for-privacy' || (lesson.id === '02-what-your-money-reveals' && isLessonComplete)
+            return <article className={`lesson-card ${isAvailable ? 'ready' : 'locked'}`} key={lesson.number}>
               <div className="lesson-meta"><span>LAB {lesson.number}</span><span className="lesson-mark">{lesson.mark}</span></div>
               <h3>{lesson.title}</h3>
               <p>{lesson.description}</p>
-              <button className="lesson-action" type="button" disabled={lesson.status === 'locked'} onClick={lesson.status === 'ready' ? beginLesson : undefined}>
-                {lesson.status === 'ready' ? 'BEGIN LESSON' : 'UNLOCKS NEXT'} <span aria-hidden="true">→</span>
+              <button className="lesson-action" type="button" disabled={!isAvailable} onClick={isAvailable ? () => beginLesson(lesson.id) : undefined}>
+                {isAvailable ? (completedLessonIds.includes(lesson.id) ? 'REVISIT LESSON' : 'BEGIN LESSON') : 'UNLOCKS NEXT'} <span aria-hidden="true">→</span>
               </button>
             </article>
-          ))}
+          })}
         </div>
       </section>
 
