@@ -52,6 +52,7 @@ function App() {
   const [newRecoveryCode, setNewRecoveryCode] = useState<string | null>(null)
   const [hasSavedRecoveryCode, setHasSavedRecoveryCode] = useState(false)
   const [isRestoring, setIsRestoring] = useState(false)
+  const [isEntryChoiceOpen, setIsEntryChoiceOpen] = useState(false)
   const [recoveryCodeInput, setRecoveryCodeInput] = useState('')
   const [isSavingProfile, setIsSavingProfile] = useState(false)
 
@@ -74,7 +75,12 @@ function App() {
     setNewRecoveryCode(null)
     setHasSavedRecoveryCode(false)
     setIsRestoring(false)
+    setIsEntryChoiceOpen(false)
     setIsAliasDialogOpen(true)
+  }
+
+  function openEntryChoice() {
+    setIsEntryChoiceOpen(true)
   }
 
   function openRestoreDialog() {
@@ -83,7 +89,14 @@ function App() {
     setRecoveryCodeInput('')
     setNewRecoveryCode(null)
     setIsRestoring(true)
+    setIsEntryChoiceOpen(false)
     setIsAliasDialogOpen(true)
+  }
+
+  function returnToEntryChoice() {
+    setAliasError('')
+    setIsAliasDialogOpen(false)
+    setIsEntryChoiceOpen(true)
   }
 
   async function createProfile(event: FormEvent<HTMLFormElement>) {
@@ -167,7 +180,7 @@ function App() {
           <span>CYPHERSCHOOL</span>
         </a>
         <span className="nav-note">{profile ? `WELCOME, ${profile.alias.toUpperCase()}` : 'A STEALF-POWERED PRIVACY LAB'}</span>
-        {profile ? <a className="nav-link" href="#curriculum">CURRICULUM <span aria-hidden="true">↘</span></a> : <button className="nav-link nav-button" type="button" onClick={openRestoreDialog}>RESTORE PROGRESS <span aria-hidden="true">↗</span></button>}
+        <a className="nav-link" href="#curriculum">CURRICULUM <span aria-hidden="true">↘</span></a>
       </nav>
 
       <section className="hero shell" id="top">
@@ -178,7 +191,7 @@ function App() {
             Short, interactive lessons for understanding what financial data reveals—and what cryptography can keep private.
           </p>
           <div className="hero-actions">
-            <button className="primary-button" type="button" onClick={openAliasDialog}>
+            <button className="primary-button" type="button" onClick={profile ? openAliasDialog : openEntryChoice}>
               {profile ? 'CONTINUE YOUR PATH' : 'ENTER THE LAB'} <span aria-hidden="true">→</span>
             </button>
             <a className="text-link" href="#curriculum">EXPLORE THE PATH <span aria-hidden="true">↓</span></a>
@@ -249,6 +262,30 @@ function App() {
         <a href="#top">BACK TO TOP ↑</a>
       </footer>
 
+      {isEntryChoiceOpen && (
+        <div className="alias-overlay" role="presentation" onMouseDown={() => setIsEntryChoiceOpen(false)}>
+          <section className="alias-dialog entry-choice" role="dialog" aria-modal="true" aria-labelledby="entry-title" onMouseDown={(event) => event.stopPropagation()}>
+            <button className="dialog-close" type="button" onClick={() => setIsEntryChoiceOpen(false)} aria-label="Close entry dialog">×</button>
+            <p className="eyebrow"><span />PRIVATE ENTRY</p>
+            <p className="dialog-index">// CYPHERSCHOOL / 001</p>
+            <h2 id="entry-title">Enter the<br /><em>lab.</em></h2>
+            <p className="dialog-copy">Start a new learning path or pick up where you left off. CypherSchool never asks for an email, wallet, or personal information.</p>
+            <div className="entry-actions">
+              <button className="entry-option" type="button" onClick={openAliasDialog}>
+                <span className="entry-option-index">01</span>
+                <span><strong>CREATE LEARNING PROFILE</strong><small>Choose an alias and receive a recovery code.</small></span>
+                <b aria-hidden="true">→</b>
+              </button>
+              <button className="entry-option" type="button" onClick={openRestoreDialog}>
+                <span className="entry-option-index">02</span>
+                <span><strong>RESTORE PROGRESS</strong><small>Use your saved alias and recovery code.</small></span>
+                <b aria-hidden="true">→</b>
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
       {isAliasDialogOpen && (
         <div className="alias-overlay" role="presentation" onMouseDown={() => !newRecoveryCode && setIsAliasDialogOpen(false)}>
           <section className="alias-dialog" role="dialog" aria-modal="true" aria-labelledby="alias-title" onMouseDown={(event) => event.stopPropagation()}>
@@ -271,6 +308,7 @@ function App() {
                 <p className="dialog-index">// CYPHERSCHOOL / RESTORE</p>
                 <h2 id="alias-title">Restore your<br /><em>progress.</em></h2>
                 <p className="dialog-copy">Enter the alias and recovery code you saved when you first entered the lab.</p>
+                <button className="back-button" type="button" onClick={returnToEntryChoice}>← BACK TO ENTRY OPTIONS</button>
                 <form onSubmit={restoreProfile}>
                   <label htmlFor="restore-alias">YOUR ALIAS</label>
                   <input id="restore-alias" name="alias" autoComplete="username" autoFocus maxLength={18} value={alias} onChange={(event) => setAlias(event.target.value)} placeholder="e.g. nocturne" />
@@ -286,6 +324,7 @@ function App() {
                 <p className="dialog-index">// CYPHERSCHOOL / 001</p>
                 <h2 id="alias-title">Choose your<br /><em>alias.</em></h2>
                 <p className="dialog-copy">This is only your name inside the lab. It stays on this device with your lesson progress.</p>
+                <button className="back-button" type="button" onClick={returnToEntryChoice}>← BACK TO ENTRY OPTIONS</button>
                 <form onSubmit={createProfile}>
                   <label htmlFor="alias">YOUR ALIAS</label>
                   <input id="alias" name="alias" autoComplete="off" autoFocus maxLength={18} value={alias} onChange={(event) => setAlias(event.target.value)} placeholder="e.g. nocturne" />
