@@ -1,8 +1,9 @@
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import './styles.css'
 
 type Lesson = {
+  id: string
   number: string
   title: string
   description: string
@@ -22,6 +23,7 @@ const profileStorageKey = 'cypherschool.profile'
 
 const lessons: Lesson[] = [
   {
+    id: '01-case-for-privacy',
     number: '01',
     title: 'The Case for Privacy',
     description: 'Why privacy matters.',
@@ -29,6 +31,7 @@ const lessons: Lesson[] = [
     mark: '◌',
   },
   {
+    id: '02-what-your-money-reveals',
     number: '02',
     title: 'What Your Money Reveals',
     description: 'What leaks without it.',
@@ -36,6 +39,7 @@ const lessons: Lesson[] = [
     mark: '↗',
   },
   {
+    id: '03-tools-of-privacy',
     number: '03',
     title: 'The Tools of Privacy',
     description: 'Cryptographic foundations.',
@@ -43,6 +47,7 @@ const lessons: Lesson[] = [
     mark: '✦',
   },
   {
+    id: '04-prove-without-revealing',
     number: '04',
     title: 'Prove Without Revealing',
     description: 'Zero knowledge.',
@@ -50,6 +55,7 @@ const lessons: Lesson[] = [
     mark: '◇',
   },
   {
+    id: '05-zcash-private-money',
     number: '05',
     title: 'Zcash & Private Money',
     description: 'Private money with Zcash.',
@@ -57,6 +63,7 @@ const lessons: Lesson[] = [
     mark: '₿',
   },
   {
+    id: '06-arcium-private-computation',
     number: '06',
     title: 'Arcium & Private Computation',
     description: 'Private computation with Arcium.',
@@ -64,6 +71,7 @@ const lessons: Lesson[] = [
     mark: '⌁',
   },
   {
+    id: '07-stealf',
     number: '07',
     title: 'Stealf',
     description: 'Stealf as the practical application.',
@@ -83,6 +91,15 @@ function App() {
   const [isEntryChoiceOpen, setIsEntryChoiceOpen] = useState(false)
   const [recoveryCodeInput, setRecoveryCodeInput] = useState('')
   const [isSavingProfile, setIsSavingProfile] = useState(false)
+  const [isLessonOpen, setIsLessonOpen] = useState(false)
+  const [manifestoStep, setManifestoStep] = useState(0)
+  const [selectedAnswer, setSelectedAnswer] = useState('')
+  const [isSavingLesson, setIsSavingLesson] = useState(false)
+  const [lessonError, setLessonError] = useState('')
+  const [isLessonComplete, setIsLessonComplete] = useState(false)
+  const [completedLessonIds, setCompletedLessonIds] = useState<string[]>([])
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
+  const progressRequestId = useRef(0)
 
   useEffect(() => {
     try {
@@ -96,6 +113,26 @@ function App() {
       window.localStorage.removeItem(profileStorageKey)
     }
   }, [])
+
+  useEffect(() => {
+    if (!profile) return
+    const requestId = ++progressRequestId.current
+    fetch('/api/progress', { headers: { 'x-cypherschool-profile': profile.id, 'x-cypherschool-session': profile.sessionToken } })
+      .then(async (response) => {
+        if (!response.ok) return
+        const result = await response.json() as { profile?: Omit<LearnerProfile, 'sessionToken'>; lessons?: Array<{ lessonId: string; completed: number }> }
+        if (requestId !== progressRequestId.current) return
+        if (result.profile) {
+          const refreshedProfile = { ...result.profile, sessionToken: profile.sessionToken }
+          window.localStorage.setItem(profileStorageKey, JSON.stringify(refreshedProfile))
+          setProfile(refreshedProfile)
+        }
+        const completedIds = result.lessons?.filter((lesson) => lesson.completed).map((lesson) => lesson.lessonId) ?? []
+        setCompletedLessonIds(completedIds)
+        setIsLessonComplete(completedIds.includes('01-case-for-privacy'))
+      })
+      .catch(() => undefined)
+  }, [profile?.id, profile?.sessionToken, isProfileOpen])
 
   function openAliasDialog() {
     setAlias(profile?.alias ?? '')
@@ -187,6 +224,7 @@ function App() {
       window.localStorage.setItem(profileStorageKey, JSON.stringify(nextProfile))
       setProfile(nextProfile)
       setIsAliasDialogOpen(false)
+      setIsLessonOpen(true)
     } catch {
       setAliasError('The learning service is unavailable. Please try again shortly.')
     } finally {
@@ -197,7 +235,114 @@ function App() {
   function enterLab() {
     setIsAliasDialogOpen(false)
     setNewRecoveryCode(null)
-    document.querySelector('#curriculum')?.scrollIntoView({ behavior: 'smooth' })
+    setIsLessonOpen(true)
+  }
+
+  function beginLesson() {
+    if (profile) {
+      setManifestoStep(isLessonComplete ? 3 : 0)
+      setSelectedAnswer('')
+      setLessonError('')
+      setIsLessonOpen(true)
+      return
+    }
+    openEntryChoice()
+  }
+
+  async function completeLesson() {
+    if (!profile || selectedAnswer !== 'choice') return
+    setIsSavingLesson(true)
+    setLessonError('')
+    try {
+      const response = await fetch('/api/progress', {
+        method: 'PUT',
+        headers: {
+          'content-type': 'application/json',
+          'x-cypherschool-profile': profile.id,
+          'x-cypherschool-session': profile.sessionToken,
+        },
+        body: JSON.stringify({ lessonId: '01-case-for-privacy', completed: true, score: 100, xpEarned: 100 }),
+      })
+      const result = await response.json() as { error?: string; profile?: Omit<LearnerProfile, 'sessionToken'> }
+      if (!response.ok || !result.profile) {
+        setLessonError(result.error ?? 'We could not save this lesson. Please try again.')
+        return
+      }
+      const nextProfile = { ...result.profile, sessionToken: profile.sessionToken }
+      progressRequestId.current += 1
+      window.localStorage.setItem(profileStorageKey, JSON.stringify(nextProfile))
+      setProfile(nextProfile)
+      setIsLessonComplete(true)
+      setCompletedLessonIds((lessonIds) => lessonIds.includes('01-case-for-privacy') ? lessonIds : [...lessonIds, '01-case-for-privacy'])
+    } catch {
+      setLessonError('The learning service is unavailable. Please try again shortly.')
+    } finally {
+      setIsSavingLesson(false)
+    }
+  }
+
+  const completedChapters = completedLessonIds.length
+  const chaptersRemaining = lessons.length - completedChapters
+
+  if (isLessonOpen) {
+    const pages = [
+      { eyebrow: 'THE CASE FOR PRIVACY', title: <>Privacy is not<br /><em>suspicion.</em></>, body: 'It is the ability to move through ordinary life without every choice becoming a permanent public record.', note: 'Privacy lets people decide what a moment means—and who gets to see it.' },
+      { eyebrow: 'THE QUIET TRAIL', title: <>Information creates<br /><em>an outline.</em></>, body: 'A payment can reveal where someone spends time, what they can afford, who they support, or when their circumstances change.', note: 'One data point can be harmless. A pattern of them can be intimate.' },
+      { eyebrow: 'THE REAL CHOICE', title: <>Privacy protects<br /><em>agency.</em></>, body: 'It gives people room to make legal, ordinary decisions without being profiled, pressured, or exposed by default.', note: 'Financial privacy is about choosing what you reveal—not disappearing.' },
+    ]
+    const page = pages[manifestoStep]
+    return (
+      <main className="lesson-screen">
+        <nav className="lesson-nav shell" aria-label="Lesson navigation">
+          <button className="lesson-back" type="button" onClick={() => setIsLessonOpen(false)}>← BACK TO PATH</button>
+          <span>CHAPTER 01 / 07</span>
+          <span>{profile?.xp ?? 0} XP</span>
+        </nav>
+        <section className="manifesto-shell shell">
+          <div className="manifesto-rail" aria-label={`Page ${Math.min(manifestoStep + 1, 4)} of 4`}>
+            {[0, 1, 2, 3].map((step) => <span className={step <= manifestoStep ? 'active' : ''} key={step} />)}
+          </div>
+          {manifestoStep < 3 && page ? (
+            <article className="manifesto-page">
+              <div>
+                <p className="eyebrow"><span />{page.eyebrow}</p>
+                <p className="lesson-kicker">// 01.0{manifestoStep + 1}</p>
+                <h1>{page.title}</h1>
+              </div>
+              <div className="manifesto-reading">
+                <p>{page.body}</p>
+                <aside>{page.note}</aside>
+                <button className="primary-button" type="button" onClick={() => setManifestoStep((step) => step + 1)}>CONTINUE <span aria-hidden="true">→</span></button>
+              </div>
+            </article>
+          ) : (
+            <article className="manifesto-page manifesto-check">
+              <div>
+                <p className="eyebrow"><span />REFLECTION CHECK</p>
+                <p className="lesson-kicker">// 01.04</p>
+                <h1>What does<br /><em>privacy give us?</em></h1>
+              </div>
+              <div className="manifesto-reading">
+                {isLessonComplete ? <>
+                  <p>You completed The Case for Privacy.</p>
+                  <aside>+100 XP synced to your anonymous learning profile.</aside>
+                  <button className="primary-button" type="button" onClick={() => setIsLessonOpen(false)}>RETURN TO PATH <span aria-hidden="true">→</span></button>
+                </> : <>
+                  <div className="answer-options">
+                    <button className={selectedAnswer === 'choice' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('choice')}>The ability to choose what we reveal.</button>
+                    <button className={selectedAnswer === 'wrong-one' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('wrong-one')}>A way to avoid responsibility.</button>
+                    <button className={selectedAnswer === 'wrong-two' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('wrong-two')}>A reason to hide ordinary activity.</button>
+                  </div>
+                  {selectedAnswer && selectedAnswer !== 'choice' && <p className="answer-note">Try again. Privacy is about control and agency, not avoiding accountability.</p>}
+                  {lessonError && <p className="alias-error" role="alert">{lessonError}</p>}
+                  <button className="primary-button" type="button" disabled={selectedAnswer !== 'choice' || isSavingLesson} onClick={completeLesson}>{isSavingLesson ? 'SAVING…' : 'COMPLETE CHAPTER'} <span aria-hidden="true">→</span></button>
+                </>}
+              </div>
+            </article>
+          )}
+        </section>
+      </main>
+    )
   }
 
   return (
@@ -207,7 +352,27 @@ function App() {
           <span className="wordmark-mark">C</span>
           <span>CYPHERSCHOOL</span>
         </a>
-        <span className="nav-note">{profile ? `WELCOME, ${profile.alias.toUpperCase()}` : 'A STEALF-POWERED PRIVACY LAB'}</span>
+        {profile ? (
+          <div className="learner-area">
+            <p className="learner-welcome">WELCOME BACK, <strong>{profile.alias.toUpperCase()}</strong></p>
+            <button className="profile-orb" type="button" onClick={() => setIsProfileOpen((open) => !open)} aria-expanded={isProfileOpen} aria-controls="learner-profile">
+              <span>{profile.alias.slice(0, 1).toUpperCase()}</span>
+              <b>{profile.xp} XP</b>
+            </button>
+            {isProfileOpen && (
+              <section className="learner-profile" id="learner-profile" aria-label="Your learning profile">
+                <div className="profile-head"><span className="profile-avatar">{profile.alias.slice(0, 1).toUpperCase()}</span><div><p>ANONYMOUS LEARNER</p><h2>{profile.alias}</h2></div></div>
+                <div className="profile-stats"><div><b>{profile.xp}</b><span>TOTAL XP</span></div><div><b>{chaptersRemaining}</b><span>CHAPTERS LEFT</span></div></div>
+                <div className="medal-header"><span>CHAPTER MEDALS</span><span>{completedChapters} / {lessons.length}</span></div>
+                <div className="medal-grid">{lessons.map((lesson) => {
+                  const earned = completedLessonIds.includes(lesson.id)
+                  return <div className={earned ? 'medal earned' : 'medal'} key={lesson.number} title={earned ? `${lesson.title} medal earned` : `${lesson.title} medal locked`}><span>{earned ? '✦' : lesson.number}</span><small>{earned ? 'EARNED' : 'LOCKED'}</small></div>
+                })}</div>
+                <p className="profile-privacy">YOUR ALIAS IS ONLY USED TO RESTORE THIS LEARNING PATH.</p>
+              </section>
+            )}
+          </div>
+        ) : <span className="nav-note">A STEALF-POWERED PRIVACY LAB</span>}
         <a className="nav-link" href="#curriculum">CURRICULUM <span aria-hidden="true">↘</span></a>
       </nav>
 
@@ -219,7 +384,7 @@ function App() {
             Short, interactive lessons for understanding what financial data reveals—and what cryptography can keep private.
           </p>
           <div className="hero-actions">
-            <button className="primary-button" type="button" onClick={profile ? openAliasDialog : openEntryChoice}>
+            <button className="primary-button" type="button" onClick={beginLesson}>
               {profile ? 'CONTINUE YOUR PATH' : 'ENTER THE LAB'} <span aria-hidden="true">→</span>
             </button>
             <a className="text-link" href="#curriculum">EXPLORE THE PATH <span aria-hidden="true">↓</span></a>
@@ -262,7 +427,7 @@ function App() {
               <div className="lesson-meta"><span>LAB {lesson.number}</span><span className="lesson-mark">{lesson.mark}</span></div>
               <h3>{lesson.title}</h3>
               <p>{lesson.description}</p>
-              <button className="lesson-action" type="button" disabled={lesson.status === 'locked'} onClick={lesson.status === 'ready' ? openAliasDialog : undefined}>
+              <button className="lesson-action" type="button" disabled={lesson.status === 'locked'} onClick={lesson.status === 'ready' ? beginLesson : undefined}>
                 {lesson.status === 'ready' ? 'BEGIN LESSON' : 'UNLOCKS NEXT'} <span aria-hidden="true">→</span>
               </button>
             </article>
