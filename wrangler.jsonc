@@ -11,7 +11,7 @@
     {
       "binding": "DB",
       "database_name": "cypherschool",
-      "database_id": "replace-with-d1-database-id",
+      "database_id": "ffce4c74-0789-4219-b149-d9bc679b8c77",
       "migrations_dir": "migrations"
     }
   ]
