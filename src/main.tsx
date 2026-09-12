@@ -11,22 +11,14 @@ type Lesson = {
 }
 
 type LearnerProfile = {
+  id: string
   alias: string
   xp: number
   createdAt: string
-  recoveryCode: string
+  sessionToken: string
 }
 
 const profileStorageKey = 'cypherschool.profile'
-
-function generateRecoveryCode() {
-  const words = ['AMBER', 'CIPHER', 'EMBER', 'FERN', 'MINT', 'NOVA', 'ORBIT', 'PAPER', 'RIVER', 'SIGNAL', 'VAULT', 'WILLOW']
-  const first = words[Math.floor(Math.random() * words.length)]
-  let second = words[Math.floor(Math.random() * words.length)]
-  while (second === first) second = words[Math.floor(Math.random() * words.length)]
-  const number = Math.floor(10 + Math.random() * 90)
-  return `${first}-${second}-${number}`
-}
 
 const lessons: Lesson[] = [
   {
@@ -59,11 +51,18 @@ function App() {
   const [aliasError, setAliasError] = useState('')
   const [newRecoveryCode, setNewRecoveryCode] = useState<string | null>(null)
   const [hasSavedRecoveryCode, setHasSavedRecoveryCode] = useState(false)
+  const [isRestoring, setIsRestoring] = useState(false)
+  const [recoveryCodeInput, setRecoveryCodeInput] = useState('')
+  const [isSavingProfile, setIsSavingProfile] = useState(false)
 
   useEffect(() => {
     try {
       const savedProfile = window.localStorage.getItem(profileStorageKey)
-      if (savedProfile) setProfile(JSON.parse(savedProfile) as LearnerProfile)
+      if (savedProfile) {
+        const parsedProfile = JSON.parse(savedProfile) as Partial<LearnerProfile>
+        if (parsedProfile.id && parsedProfile.alias && parsedProfile.sessionToken) setProfile(parsedProfile as LearnerProfile)
+        else window.localStorage.removeItem(profileStorageKey)
+      }
     } catch {
       window.localStorage.removeItem(profileStorageKey)
     }
@@ -74,10 +73,20 @@ function App() {
     setAliasError('')
     setNewRecoveryCode(null)
     setHasSavedRecoveryCode(false)
+    setIsRestoring(false)
     setIsAliasDialogOpen(true)
   }
 
-  function createProfile(event: FormEvent<HTMLFormElement>) {
+  function openRestoreDialog() {
+    setAlias('')
+    setAliasError('')
+    setRecoveryCodeInput('')
+    setNewRecoveryCode(null)
+    setIsRestoring(true)
+    setIsAliasDialogOpen(true)
+  }
+
+  async function createProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const normalizedAlias = alias.trim().replace(/\s+/g, ' ')
 
@@ -91,11 +100,57 @@ function App() {
       return
     }
 
-    const recoveryCode = profile?.recoveryCode ?? generateRecoveryCode()
-    const nextProfile = { alias: normalizedAlias, xp: profile?.xp ?? 0, createdAt: profile?.createdAt ?? new Date().toISOString(), recoveryCode }
-    window.localStorage.setItem(profileStorageKey, JSON.stringify(nextProfile))
-    setProfile(nextProfile)
-    setNewRecoveryCode(recoveryCode)
+    setIsSavingProfile(true)
+    try {
+      const response = await fetch('/api/profiles', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ alias: normalizedAlias }),
+      })
+      const result = await response.json() as { error?: string; profile?: Omit<LearnerProfile, 'sessionToken'>; recoveryCode?: string; sessionToken?: string }
+      if (!response.ok || !result.profile || !result.recoveryCode || !result.sessionToken) {
+        setAliasError(result.error ?? 'Unable to create your learning profile. Please try again.')
+        return
+      }
+      const nextProfile = { ...result.profile, sessionToken: result.sessionToken }
+      window.localStorage.setItem(profileStorageKey, JSON.stringify(nextProfile))
+      setProfile(nextProfile)
+      setNewRecoveryCode(result.recoveryCode)
+    } catch {
+      setAliasError('The learning service is unavailable. Please try again shortly.')
+    } finally {
+      setIsSavingProfile(false)
+    }
+  }
+
+  async function restoreProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const normalizedAlias = alias.trim().replace(/\s+/g, ' ')
+    if (!normalizedAlias || !recoveryCodeInput.trim()) {
+      setAliasError('Enter both your alias and recovery code.')
+      return
+    }
+    setIsSavingProfile(true)
+    try {
+      const response = await fetch('/api/profiles/restore', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ alias: normalizedAlias, recoveryCode: recoveryCodeInput }),
+      })
+      const result = await response.json() as { error?: string; profile?: Omit<LearnerProfile, 'sessionToken'>; sessionToken?: string }
+      if (!response.ok || !result.profile || !result.sessionToken) {
+        setAliasError(result.error ?? 'Unable to restore your learning profile.')
+        return
+      }
+      const nextProfile = { ...result.profile, sessionToken: result.sessionToken }
+      window.localStorage.setItem(profileStorageKey, JSON.stringify(nextProfile))
+      setProfile(nextProfile)
+      setIsAliasDialogOpen(false)
+    } catch {
+      setAliasError('The learning service is unavailable. Please try again shortly.')
+    } finally {
+      setIsSavingProfile(false)
+    }
   }
 
   function enterLab() {
@@ -112,7 +167,7 @@ function App() {
           <span>CYPHERSCHOOL</span>
         </a>
         <span className="nav-note">{profile ? `WELCOME, ${profile.alias.toUpperCase()}` : 'A STEALF-POWERED PRIVACY LAB'}</span>
-        <a className="nav-link" href="#curriculum">CURRICULUM <span aria-hidden="true">↘</span></a>
+        {profile ? <a className="nav-link" href="#curriculum">CURRICULUM <span aria-hidden="true">↘</span></a> : <button className="nav-link nav-button" type="button" onClick={openRestoreDialog}>RESTORE PROGRESS <span aria-hidden="true">↗</span></button>}
       </nav>
 
       <section className="hero shell" id="top">
@@ -209,6 +264,22 @@ function App() {
                 <label className="recovery-check"><input type="checkbox" checked={hasSavedRecoveryCode} onChange={(event) => setHasSavedRecoveryCode(event.target.checked)} /><span>I have saved my recovery code.</span></label>
                 <button className="primary-button dialog-submit" type="button" onClick={enterLab} disabled={!hasSavedRecoveryCode}>BEGIN LAB 01 <span aria-hidden="true">→</span></button>
               </div>
+            ) : isRestoring ? (
+              <>
+                <button className="dialog-close" type="button" onClick={() => setIsAliasDialogOpen(false)} aria-label="Close restore dialog">×</button>
+                <p className="eyebrow"><span />RETURN TO CYPHERSCHOOL</p>
+                <p className="dialog-index">// CYPHERSCHOOL / RESTORE</p>
+                <h2 id="alias-title">Restore your<br /><em>progress.</em></h2>
+                <p className="dialog-copy">Enter the alias and recovery code you saved when you first entered the lab.</p>
+                <form onSubmit={restoreProfile}>
+                  <label htmlFor="restore-alias">YOUR ALIAS</label>
+                  <input id="restore-alias" name="alias" autoComplete="username" autoFocus maxLength={18} value={alias} onChange={(event) => setAlias(event.target.value)} placeholder="e.g. nocturne" />
+                  <label className="recovery-input-label" htmlFor="recovery-code">RECOVERY CODE</label>
+                  <input id="recovery-code" name="recovery-code" autoComplete="off" maxLength={32} value={recoveryCodeInput} onChange={(event) => setRecoveryCodeInput(event.target.value.toUpperCase())} placeholder="e.g. MINT-ORBIT-42" />
+                  {aliasError && <p className="alias-error" role="alert">{aliasError}</p>}
+                  <button className="primary-button dialog-submit" type="submit" disabled={isSavingProfile}>{isSavingProfile ? 'RESTORING…' : 'RESTORE MY PATH'} <span aria-hidden="true">→</span></button>
+                </form>
+              </>
             ) : (
               <>
                 <p className="eyebrow"><span />PRIVATE ENTRY</p>
@@ -220,7 +291,7 @@ function App() {
                   <input id="alias" name="alias" autoComplete="off" autoFocus maxLength={18} value={alias} onChange={(event) => setAlias(event.target.value)} placeholder="e.g. nocturne" />
                   {aliasError && <p className="alias-error" role="alert">{aliasError}</p>}
                   <p className="dialog-privacy">NO EMAIL · NO WALLET · NO PERSONAL DATA</p>
-                  <button className="primary-button dialog-submit" type="submit">CREATE MY LEARNING PROFILE <span aria-hidden="true">→</span></button>
+                  <button className="primary-button dialog-submit" type="submit" disabled={isSavingProfile}>{isSavingProfile ? 'CREATING PROFILE…' : 'CREATE MY LEARNING PROFILE'} <span aria-hidden="true">→</span></button>
                 </form>
               </>
             )}
