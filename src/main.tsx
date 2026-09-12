@@ -259,8 +259,8 @@ function App() {
     setActiveLessonId(null)
   }
 
-  async function completeLesson(lessonId: '01-case-for-privacy' | '02-what-your-money-reveals') {
-    const correctAnswer = lessonId === '01-case-for-privacy' ? 'choice' : 'choice-two'
+  async function completeLesson(lessonId: '01-case-for-privacy' | '02-what-your-money-reveals' | '03-tools-of-privacy') {
+    const correctAnswer = lessonId === '01-case-for-privacy' ? 'choice' : lessonId === '02-what-your-money-reveals' ? 'choice-two' : 'choice-three'
     if (!profile || selectedAnswer !== correctAnswer) return
     setIsSavingLesson(true)
     setLessonError('')
@@ -317,7 +317,31 @@ function App() {
             <div className="manifesto-reading">{manifestoStep === 1 && <div className="transaction-trail"><div><span>MON · 08:12</span><b>18 USDC → GREEN RAIL</b></div><div><span>TUE · 12:40</span><b>42 USDC → CENTRAL CLINIC</b></div><div><span>FRI · 19:05</span><b>18 USDC → GREEN RAIL</b></div></div>}<p>{exposurePage.body}</p><aside>{exposurePage.note}</aside>{manifestoStep > 0 && <button className="review-notes" type="button" onClick={() => setManifestoStep((step) => step - 1)}>← PREVIOUS NOTE</button>}<button className="primary-button" type="button" onClick={() => setManifestoStep((step) => step + 1)}>CONTINUE <span aria-hidden="true">→</span></button></div>
           </article> : <article className="manifesto-page manifesto-check">
             <div><p className="eyebrow"><span />PATTERN CHECK</p><p className="lesson-kicker">// 02.03</p><h1>What can an<br /><em>observer infer?</em></h1></div>
-            <div className="manifesto-reading">{secondComplete ? <><p>You completed What Your Money Reveals.</p><aside>+100 XP and Medal 02 synced to your anonymous learning profile.</aside><button className="primary-button" type="button" onClick={() => setActiveLessonId(null)}>RETURN TO PATH <span aria-hidden="true">→</span></button></> : <><button className="review-notes" type="button" onClick={() => setManifestoStep(1)}>← REVIEW PREVIOUS NOTES</button><div className="answer-options"><button className={selectedAnswer === 'choice-two' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('choice-two')}>Juno may have a regular routine around Central Square.</button><button className={selectedAnswer === 'wrong-three' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('wrong-three')}>Juno’s medical diagnosis is publicly known.</button><button className={selectedAnswer === 'wrong-four' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('wrong-four')}>Nothing meaningful can be learned from public payments.</button></div>{selectedAnswer && selectedAnswer !== 'choice-two' && <p className="answer-note">Not quite. Patterns can suggest a routine, but they do not prove a diagnosis or reveal everything about a person.</p>}{lessonError && <p className="alias-error" role="alert">{lessonError}</p>}<button className="primary-button" type="button" disabled={selectedAnswer !== 'choice-two' || isSavingLesson} onClick={() => completeLesson('02-what-your-money-reveals')}>{isSavingLesson ? 'SAVING…' : 'COMPLETE CHAPTER'} <span aria-hidden="true">→</span></button></>}</div>
+            <div className="manifesto-reading">{secondComplete ? <><button className="review-notes" type="button" onClick={() => setManifestoStep(1)}>← REVIEW PREVIOUS NOTES</button><p>You completed What Your Money Reveals.</p><aside>+100 XP and Medal 02 synced to your anonymous learning profile.</aside><button className="primary-button" type="button" onClick={() => setActiveLessonId(null)}>RETURN TO PATH <span aria-hidden="true">→</span></button></> : <><button className="review-notes" type="button" onClick={() => setManifestoStep(1)}>← REVIEW PREVIOUS NOTES</button><div className="answer-options"><button className={selectedAnswer === 'choice-two' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('choice-two')}>Juno may have a regular routine around Central Square.</button><button className={selectedAnswer === 'wrong-three' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('wrong-three')}>Juno’s medical diagnosis is publicly known.</button><button className={selectedAnswer === 'wrong-four' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('wrong-four')}>Nothing meaningful can be learned from public payments.</button></div>{selectedAnswer && selectedAnswer !== 'choice-two' && <p className="answer-note">Not quite. Patterns can suggest a routine, but they do not prove a diagnosis or reveal everything about a person.</p>}{lessonError && <p className="alias-error" role="alert">{lessonError}</p>}<button className="primary-button" type="button" disabled={selectedAnswer !== 'choice-two' || isSavingLesson} onClick={() => completeLesson('02-what-your-money-reveals')}>{isSavingLesson ? 'SAVING…' : 'COMPLETE CHAPTER'} <span aria-hidden="true">→</span></button></>}</div>
+          </article>}
+        </section>
+      </main>
+    )
+  }
+
+  if (activeLessonId === '03-tools-of-privacy') {
+    const toolPages = [
+      { eyebrow: 'THE TOOLS OF PRIVACY', title: <>A secret needs<br /><em>a shield.</em></>, body: 'A message left in plain text can be read by anyone who sees it. Encryption transforms it into ciphertext: information that is unreadable without the right key.', note: 'Encryption protects the contents of information, even when the information has to travel.' },
+      { eyebrow: 'THE RIGHT KEY', title: <span className="right-key-title">The lock is public.<br />The key is <em>yours.</em></span>, body: 'Good privacy tools do not depend on hiding the existence of a lock. They depend on making the key hard to guess, hard to copy, and available only to the intended person.', note: 'Cryptography lets systems verify and protect information without asking everyone to trust a middleman.' },
+    ]
+    const toolPage = toolPages[manifestoStep]
+    const thirdComplete = completedLessonIds.includes('03-tools-of-privacy')
+    return (
+      <main className="lesson-screen tools-screen">
+        <nav className="lesson-nav shell" aria-label="Lesson navigation"><button className="lesson-back" type="button" onClick={() => setActiveLessonId(null)}>← BACK TO PATH</button><span>CHAPTER 03 / 07</span><span>{profile?.xp ?? 0} XP</span></nav>
+        <section className="manifesto-shell shell">
+          <div className="manifesto-rail" aria-label={`Page ${Math.min(manifestoStep + 1, 3)} of 3`}>{[0, 1, 2].map((step) => <span className={step <= manifestoStep ? 'active' : ''} key={step} />)}</div>
+          {manifestoStep < 2 && toolPage ? <article className="manifesto-page">
+            <div><p className="eyebrow"><span />{toolPage.eyebrow}</p><p className="lesson-kicker">// 03.0{manifestoStep + 1}</p><h1>{toolPage.title}</h1></div>
+            <div className="manifesto-reading">{manifestoStep === 0 && <div className="crypto-transform"><span>“PAY JUNO 18”</span><b>ENCRYPT</b><strong>8Q7X · L2KM · 4V9P</strong></div>}<p>{toolPage.body}</p><aside>{toolPage.note}</aside>{manifestoStep > 0 && <button className="review-notes" type="button" onClick={() => setManifestoStep((step) => step - 1)}>← PREVIOUS NOTE</button>}<button className="primary-button" type="button" onClick={() => setManifestoStep((step) => step + 1)}>CONTINUE <span aria-hidden="true">→</span></button></div>
+          </article> : <article className="manifesto-page manifesto-check">
+            <div><p className="eyebrow"><span />FOUNDATION CHECK</p><p className="lesson-kicker">// 03.03</p><h1>What does<br /><em>encryption do?</em></h1></div>
+            <div className="manifesto-reading">{thirdComplete ? <><button className="review-notes" type="button" onClick={() => setManifestoStep(1)}>← REVIEW PREVIOUS NOTES</button><div className="answer-options recorded-answer"><button className="selected" type="button" disabled>It turns readable information into protected ciphertext that needs a key to read.</button><button type="button" disabled>It makes public information disappear forever.</button><button type="button" disabled>It proves that a person is trustworthy.</button></div><p className="answer-note answer-recorded">ANSWER RECORDED — Encryption protects information from people who do not hold the key.</p><aside>Chapter complete. +100 XP and Medal 03 are synced to your learning profile.</aside><button className="primary-button" type="button" onClick={() => setActiveLessonId(null)}>RETURN TO PATH <span aria-hidden="true">→</span></button></> : <><button className="review-notes" type="button" onClick={() => setManifestoStep(1)}>← REVIEW PREVIOUS NOTES</button><div className="answer-options"><button className={selectedAnswer === 'choice-three' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('choice-three')}>It turns readable information into protected ciphertext that needs a key to read.</button><button className={selectedAnswer === 'wrong-five' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('wrong-five')}>It makes public information disappear forever.</button><button className={selectedAnswer === 'wrong-six' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('wrong-six')}>It proves that a person is trustworthy.</button></div>{selectedAnswer && selectedAnswer !== 'choice-three' && <p className="answer-note">Not quite. Encryption protects the contents of information; it does not erase public facts or prove trust by itself.</p>}{lessonError && <p className="alias-error" role="alert">{lessonError}</p>}<button className="primary-button" type="button" disabled={selectedAnswer !== 'choice-three' || isSavingLesson} onClick={() => completeLesson('03-tools-of-privacy')}>{isSavingLesson ? 'SAVING…' : 'COMPLETE CHAPTER'} <span aria-hidden="true">→</span></button></>}</div>
           </article>}
         </section>
       </main>
@@ -368,6 +392,7 @@ function App() {
                   <div className="answer-options recorded-answer" aria-label="Recorded answer"><button className="selected" type="button" disabled>The ability to choose what we reveal.</button><button type="button" disabled>A way to avoid responsibility.</button><button type="button" disabled>A reason to hide ordinary activity.</button></div>
                   <p className="answer-note answer-recorded">ANSWER RECORDED — Privacy gives people the agency to choose what they reveal.</p>
                   <aside>Chapter complete. +100 XP and Medal 01 are synced to your learning profile.</aside>
+                  <button className="review-notes" type="button" onClick={() => setManifestoStep(2)}>← REVIEW PREVIOUS NOTES</button>
                   <button className="primary-button" type="button" onClick={() => setActiveLessonId(null)}>RETURN TO PATH <span aria-hidden="true">→</span></button>
                 </> : <>
                   <button className="review-notes" type="button" onClick={() => setManifestoStep(2)}>← REVIEW PREVIOUS NOTES</button>
@@ -423,7 +448,7 @@ function App() {
       <section className="hero shell" id="top">
         <div className="hero-copy">
           <p className="eyebrow"><span />PRIVATE KNOWLEDGE, PUBLICLY USEFUL</p>
-          <h1>Privacy is not<br /><em>Secrecy.</em></h1>
+          <h1>Privacy is not<br /><em className="glitch-word" data-text="Secrecy.">Secrecy.</em></h1>
           <p className="quote-attribution">— ERIC HUGHES, 9 MARCH 1993</p>
           <p className="hero-intro">
             Short, interactive lessons for understanding what financial data reveals—and what cryptography can keep private.
@@ -468,7 +493,7 @@ function App() {
 
         <div className="lesson-grid">
           {lessons.map((lesson) => {
-            const isAvailable = lesson.id === '01-case-for-privacy' || (lesson.id === '02-what-your-money-reveals' && isLessonComplete)
+            const isAvailable = lesson.id === '01-case-for-privacy' || (lesson.id === '02-what-your-money-reveals' && isLessonComplete) || (lesson.id === '03-tools-of-privacy' && completedLessonIds.includes('02-what-your-money-reveals'))
             return <article className={`lesson-card ${isAvailable ? 'ready' : 'locked'}`} key={lesson.number}>
               <div className="lesson-meta"><span>LAB {lesson.number}</span><span className="lesson-mark">{lesson.mark}</span></div>
               <h3>{lesson.title}</h3>
