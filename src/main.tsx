@@ -416,7 +416,7 @@ function App() {
               </section>
             )}
           </div>
-        ) : <span className="nav-note">A STEALF-POWERED PRIVACY LAB</span>}
+        ) : <span className="nav-note">A PRIVACY LEARNING LAB</span>}
         <a className="nav-link" href="#curriculum">CURRICULUM <span aria-hidden="true">↘</span></a>
       </nav>
 
@@ -463,7 +463,7 @@ function App() {
             <p className="eyebrow"><span />THE FIRST PATH</p>
             <h2>Seven chapters.<br />One clearer view.</h2>
           </div>
-          <p className="section-summary">From why privacy matters to Stealf as a practical application—one short, connected learning path.</p>
+          <p className="section-summary">A practical path from why privacy matters to the tools and systems that can protect it.</p>
         </div>
 
         <div className="lesson-grid">
@@ -489,10 +489,10 @@ function App() {
           </svg>
         </div>
         <div>
-          <p className="eyebrow"><span />BUILT FOR STEALF</p>
-          <h2>Understand the problem<br />before meeting the infrastructure.</h2>
+          <p className="eyebrow"><span />FROM PRINCIPLE TO PRACTICE</p>
+          <h2>Understand the problem<br />before choosing the tools.</h2>
         </div>
-        <p>CypherSchool uses fictional scenarios to introduce financial privacy. The final lab will connect those ideas to Stealf’s dual-wallet approach and Arcium-powered private computation.</p>
+        <p>CypherSchool uses fictional scenarios to build privacy literacy. The final chapter introduces Stealf as one practical application of private financial infrastructure.</p>
       </section>
 
       <footer className="footer shell">

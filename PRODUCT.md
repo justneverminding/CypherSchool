@@ -2,7 +2,7 @@
 
 ## Product promise
 
-CypherSchool is a Stealf-powered privacy lab: a short, interactive learning experience that helps people understand financial privacy by doing, not just reading.
+CypherSchool is a privacy learning lab: a short, interactive learning experience that helps people understand financial privacy by doing, not just reading.
 
 > Learn how financial privacy works. Experience it. Prove it. Keep what matters private.
 
@@ -13,7 +13,7 @@ A first-time visitor should be able to spend five minutes in CypherSchool and le
 1. Public financial activity can expose patterns, relationships, and habits.
 2. Privacy is control over personal information, not an admission of wrongdoing.
 3. Cryptographic tools can enable useful verification or computation without exposing all underlying information.
-4. Stealf belongs in a future where financial privacy is a product principle.
+4. Practical privacy tools can apply these ideas without exposing people by default.
 
 ## Audience
 
@@ -26,7 +26,7 @@ CypherSchool assumes no prior technical knowledge. It should explain each idea p
 ## The learning arc
 
 ```text
-Observe exposure  →  Understand the privacy problem  →  Try a privacy primitive  →  Meet Stealf
+Observe exposure  →  Understand the privacy problem  →  Try a privacy primitive  →  Explore practical applications
 ```
 
 The MVP contains three short interactive chapters:

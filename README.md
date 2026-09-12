@@ -1,6 +1,6 @@
 # CypherSchool
 
-**A Stealf-powered privacy lab for short, interactive learning about financial privacy.**
+**A privacy learning lab for short, interactive lessons about financial privacy.**
 
 CypherSchool teaches financial privacy through brief, hands-on lessons. Learners explore what public financial activity can reveal, then encounter privacy-preserving ideas such as zero-knowledge proofs and private computation.
 
