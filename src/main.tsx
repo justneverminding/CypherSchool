@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { FormEvent, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import './styles.css'
 
@@ -8,6 +8,24 @@ type Lesson = {
   description: string
   status: 'ready' | 'locked'
   mark: string
+}
+
+type LearnerProfile = {
+  alias: string
+  xp: number
+  createdAt: string
+  recoveryCode: string
+}
+
+const profileStorageKey = 'cypherschool.profile'
+
+function generateRecoveryCode() {
+  const words = ['AMBER', 'CIPHER', 'EMBER', 'FERN', 'MINT', 'NOVA', 'ORBIT', 'PAPER', 'RIVER', 'SIGNAL', 'VAULT', 'WILLOW']
+  const first = words[Math.floor(Math.random() * words.length)]
+  let second = words[Math.floor(Math.random() * words.length)]
+  while (second === first) second = words[Math.floor(Math.random() * words.length)]
+  const number = Math.floor(10 + Math.random() * 90)
+  return `${first}-${second}-${number}`
 }
 
 const lessons: Lesson[] = [
@@ -35,11 +53,55 @@ const lessons: Lesson[] = [
 ]
 
 function App() {
-  const [isStarting, setIsStarting] = useState(false)
+  const [profile, setProfile] = useState<LearnerProfile | null>(null)
+  const [isAliasDialogOpen, setIsAliasDialogOpen] = useState(false)
+  const [alias, setAlias] = useState('')
+  const [aliasError, setAliasError] = useState('')
+  const [newRecoveryCode, setNewRecoveryCode] = useState<string | null>(null)
+  const [hasSavedRecoveryCode, setHasSavedRecoveryCode] = useState(false)
 
-  function beginSession() {
-    setIsStarting(true)
-    window.setTimeout(() => setIsStarting(false), 1700)
+  useEffect(() => {
+    try {
+      const savedProfile = window.localStorage.getItem(profileStorageKey)
+      if (savedProfile) setProfile(JSON.parse(savedProfile) as LearnerProfile)
+    } catch {
+      window.localStorage.removeItem(profileStorageKey)
+    }
+  }, [])
+
+  function openAliasDialog() {
+    setAlias(profile?.alias ?? '')
+    setAliasError('')
+    setNewRecoveryCode(null)
+    setHasSavedRecoveryCode(false)
+    setIsAliasDialogOpen(true)
+  }
+
+  function createProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const normalizedAlias = alias.trim().replace(/\s+/g, ' ')
+
+    if (normalizedAlias.length < 3 || normalizedAlias.length > 18) {
+      setAliasError('Choose 3–18 characters.')
+      return
+    }
+
+    if (!/^[a-zA-Z0-9 _-]+$/.test(normalizedAlias)) {
+      setAliasError('Use letters, numbers, spaces, hyphens, or underscores.')
+      return
+    }
+
+    const recoveryCode = profile?.recoveryCode ?? generateRecoveryCode()
+    const nextProfile = { alias: normalizedAlias, xp: profile?.xp ?? 0, createdAt: profile?.createdAt ?? new Date().toISOString(), recoveryCode }
+    window.localStorage.setItem(profileStorageKey, JSON.stringify(nextProfile))
+    setProfile(nextProfile)
+    setNewRecoveryCode(recoveryCode)
+  }
+
+  function enterLab() {
+    setIsAliasDialogOpen(false)
+    setNewRecoveryCode(null)
+    document.querySelector('#curriculum')?.scrollIntoView({ behavior: 'smooth' })
   }
 
   return (
@@ -49,7 +111,7 @@ function App() {
           <span className="wordmark-mark">C</span>
           <span>CYPHERSCHOOL</span>
         </a>
-        <span className="nav-note">A STEALF-POWERED PRIVACY LAB</span>
+        <span className="nav-note">{profile ? `WELCOME, ${profile.alias.toUpperCase()}` : 'A STEALF-POWERED PRIVACY LAB'}</span>
         <a className="nav-link" href="#curriculum">CURRICULUM <span aria-hidden="true">↘</span></a>
       </nav>
 
@@ -61,8 +123,8 @@ function App() {
             Short, interactive lessons for understanding what financial data reveals—and what cryptography can keep private.
           </p>
           <div className="hero-actions">
-            <button className="primary-button" type="button" onClick={beginSession} disabled={isStarting}>
-              {isStarting ? 'INITIALIZING LAB…' : 'ENTER THE LAB'} <span aria-hidden="true">→</span>
+            <button className="primary-button" type="button" onClick={openAliasDialog}>
+              {profile ? 'CONTINUE YOUR PATH' : 'ENTER THE LAB'} <span aria-hidden="true">→</span>
             </button>
             <a className="text-link" href="#curriculum">EXPLORE THE PATH <span aria-hidden="true">↓</span></a>
           </div>
@@ -70,7 +132,7 @@ function App() {
         </div>
 
         <div className="signal-panel" aria-label="Illustration of protected information">
-          <div className="signal-topline"><span>LIVE LEARNING SYSTEM</span><span>01 / 03</span></div>
+          <div className="signal-topline"><span>LIVE LEARNING SYSTEM</span><span>FOUNDATION PATH</span></div>
           <div className="signal-orbit orbit-one" />
           <div className="signal-orbit orbit-two" />
           <div className="signal-core">
@@ -104,7 +166,7 @@ function App() {
               <div className="lesson-meta"><span>LAB {lesson.number}</span><span className="lesson-mark">{lesson.mark}</span></div>
               <h3>{lesson.title}</h3>
               <p>{lesson.description}</p>
-              <button className="lesson-action" type="button" disabled={lesson.status === 'locked'}>
+              <button className="lesson-action" type="button" disabled={lesson.status === 'locked'} onClick={lesson.status === 'ready' ? openAliasDialog : undefined}>
                 {lesson.status === 'ready' ? 'BEGIN LESSON' : 'UNLOCKS NEXT'} <span aria-hidden="true">→</span>
               </button>
             </article>
@@ -131,6 +193,40 @@ function App() {
         <span>PRIVACY IS A PRACTICE.</span>
         <a href="#top">BACK TO TOP ↑</a>
       </footer>
+
+      {isAliasDialogOpen && (
+        <div className="alias-overlay" role="presentation" onMouseDown={() => !newRecoveryCode && setIsAliasDialogOpen(false)}>
+          <section className="alias-dialog" role="dialog" aria-modal="true" aria-labelledby="alias-title" onMouseDown={(event) => event.stopPropagation()}>
+            {!newRecoveryCode && <button className="dialog-close" type="button" onClick={() => setIsAliasDialogOpen(false)} aria-label="Close alias dialog">×</button>}
+            {newRecoveryCode ? (
+              <div className="recovery-screen">
+                <p className="eyebrow"><span />YOUR PRIVATE BACKUP</p>
+                <p className="dialog-index">// CYPHERSCHOOL / RECOVERY</p>
+                <h2 id="alias-title">Save your<br /><em>recovery code.</em></h2>
+                <p className="dialog-copy">Use this code to restore your learning progress when you move to another browser or device.</p>
+                <div className="recovery-code" aria-label={`Your recovery code is ${newRecoveryCode}`}>{newRecoveryCode}</div>
+                <p className="recovery-warning">This is the only time CypherSchool will show this code.</p>
+                <label className="recovery-check"><input type="checkbox" checked={hasSavedRecoveryCode} onChange={(event) => setHasSavedRecoveryCode(event.target.checked)} /><span>I have saved my recovery code.</span></label>
+                <button className="primary-button dialog-submit" type="button" onClick={enterLab} disabled={!hasSavedRecoveryCode}>BEGIN LAB 01 <span aria-hidden="true">→</span></button>
+              </div>
+            ) : (
+              <>
+                <p className="eyebrow"><span />PRIVATE ENTRY</p>
+                <p className="dialog-index">// CYPHERSCHOOL / 001</p>
+                <h2 id="alias-title">Choose your<br /><em>alias.</em></h2>
+                <p className="dialog-copy">This is only your name inside the lab. It stays on this device with your lesson progress.</p>
+                <form onSubmit={createProfile}>
+                  <label htmlFor="alias">YOUR ALIAS</label>
+                  <input id="alias" name="alias" autoComplete="off" autoFocus maxLength={18} value={alias} onChange={(event) => setAlias(event.target.value)} placeholder="e.g. nocturne" />
+                  {aliasError && <p className="alias-error" role="alert">{aliasError}</p>}
+                  <p className="dialog-privacy">NO EMAIL · NO WALLET · NO PERSONAL DATA</p>
+                  <button className="primary-button dialog-submit" type="submit">CREATE MY LEARNING PROFILE <span aria-hidden="true">→</span></button>
+                </form>
+              </>
+            )}
+          </section>
+        </div>
+      )}
     </main>
   )
 }

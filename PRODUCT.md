@@ -43,6 +43,7 @@ The first version includes:
 
 - Alias-only entry with no email, wallet, profile photo, or KYC.
 - Local, device-bound progress during early development.
+- A simple recovery-code onboarding flow that makes the learner save a code before beginning. Server-backed restoration is the next persistence step.
 - Three interactive chapters, XP, a small set of ranks, and a completion card.
 - A direct, sourced Stealf conclusion.
 
@@ -52,6 +53,12 @@ The first version does not include:
 - Persistent accounts, recovery keys, or cross-device sync.
 - Real-money rewards, wagers, or financial advice.
 - A full multi-course academy or social network.
+
+## Anonymous progress and recovery
+
+CypherSchool uses an alias as a display name, never as a credential. At onboarding, it generates a short recovery code and clearly tells the learner to save it.
+
+When server persistence is added, the learner will use their alias and recovery code to restore XP and lesson progress on a new browser or device. This intentionally prioritizes simple learning over end-to-end encrypted storage: it collects no email, wallet, name, or KYC, but it does not claim that progress data is encrypted from the service operator.
 
 ## Visual direction
 
