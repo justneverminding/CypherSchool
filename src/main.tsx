@@ -249,6 +249,15 @@ function App() {
     openEntryChoice()
   }
 
+  function logOut() {
+    window.localStorage.removeItem(profileStorageKey)
+    setProfile(null)
+    setCompletedLessonIds([])
+    setIsLessonComplete(false)
+    setIsProfileOpen(false)
+    setIsLessonOpen(false)
+  }
+
   async function completeLesson() {
     if (!profile || selectedAnswer !== 'choice') return
     setIsSavingLesson(true)
@@ -369,6 +378,7 @@ function App() {
                   return <div className={earned ? 'medal earned' : 'medal'} key={lesson.number} title={earned ? `${lesson.title} medal earned` : `${lesson.title} medal locked`}><span>{earned ? '✦' : lesson.number}</span><small>{earned ? 'EARNED' : 'LOCKED'}</small></div>
                 })}</div>
                 <p className="profile-privacy">YOUR ALIAS IS ONLY USED TO RESTORE THIS LEARNING PATH.</p>
+                <button className="logout-button" type="button" onClick={logOut}>LOG OUT OF THIS DEVICE <span aria-hidden="true">↗</span></button>
               </section>
             )}
           </div>
