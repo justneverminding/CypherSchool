@@ -28,7 +28,7 @@ a { color: inherit; text-decoration: none; }
 .eyebrow span { width: 6px; height: 6px; background: #9dee91; border-radius: 50%; box-shadow: 0 0 14px #9dee91; }
 h1, h2, h3, p { margin-top: 0; }
 h1 { font-size: clamp(58px, 7.4vw, 96px); line-height: .9; letter-spacing: -.07em; margin: 0 0 27px; font-weight: 700; }
-h1 em, h2 em { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; letter-spacing: -.055em; }
+h1 em, h2 em { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; letter-spacing: -.055em; }.quote-attribution { margin: -13px 0 25px; color: #809085; font: 500 10px 'DM Mono', monospace; letter-spacing: .08em; }
 .hero-intro { max-width: 490px; color: #acb4af; font-size: 16px; line-height: 1.75; }
 .hero-actions { display: flex; align-items: center; gap: 25px; margin-top: 32px; }
 .primary-button { border: 0; padding: 16px 18px; background: #9dee91; color: #101410; font: 600 11px 'DM Mono', monospace; letter-spacing: .06em; transition: transform .2s ease, background .2s ease; }

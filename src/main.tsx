@@ -379,7 +379,8 @@ function App() {
       <section className="hero shell" id="top">
         <div className="hero-copy">
           <p className="eyebrow"><span />PRIVATE KNOWLEDGE, PUBLICLY USEFUL</p>
-          <h1>Privacy is<br /><em>a skill.</em></h1>
+          <h1>Privacy is not<br /><em>Secrecy.</em></h1>
+          <p className="quote-attribution">— ERIC HUGHES, 9 MARCH 1993</p>
           <p className="hero-intro">
             Short, interactive lessons for understanding what financial data reveals—and what cryptography can keep private.
           </p>
