@@ -425,6 +425,7 @@ function App() {
   const isCourseComplete = completedChapters === lessons.length
   const nextLesson = lessons.find((lesson) => lesson.id === nextBuiltLessonId())
   const continuePathLabel = nextLesson ? `CONTINUE: ${nextLesson.number} — ${nextLesson.title.toUpperCase()}` : 'VIEW NEXT PATH'
+  const selectedAvatarStyle = { backgroundImage: 'url(/cypherschool-pfps.png)', backgroundSize: '500% 400%', backgroundPosition: `${((profile?.avatarIndex ?? 0) % 5) * 25}% ${Math.floor((profile?.avatarIndex ?? 0) / 5) * 33.333}%` }
 
   if (isDashboardOpen && !activeLessonId) {
     return <main className="dashboard-screen">
@@ -735,12 +736,12 @@ function App() {
           <div className="learner-area">
             <p className="learner-welcome">WELCOME BACK, <strong>{profile.alias.toUpperCase()}</strong></p>
             <button className="profile-orb" type="button" onClick={() => setIsProfileOpen((open) => !open)} aria-expanded={isProfileOpen} aria-controls="learner-profile">
-              <span>{profile.alias.slice(0, 1).toUpperCase()}</span>
+              <span className="profile-pfp" style={selectedAvatarStyle} aria-hidden="true" />
               <b>{profile.xp} XP</b>
             </button>
             {isProfileOpen && (
               <section className="learner-profile" id="learner-profile" aria-label="Your learning profile">
-                <div className="profile-head"><span className="profile-avatar">{profile.alias.slice(0, 1).toUpperCase()}</span><div><p>ANONYMOUS LEARNER</p><h2>{profile.alias}</h2></div></div>
+                <div className="profile-head"><span className="profile-avatar profile-pfp" style={selectedAvatarStyle} aria-hidden="true" /><div><p>ANONYMOUS LEARNER</p><h2>{profile.alias}</h2></div></div>
                 <div className="profile-stats"><div><b>{profile.xp}</b><span>TOTAL XP</span></div><div><b>{chaptersRemaining}</b><span>CHAPTERS LEFT</span></div></div>
                 <div className="medal-header"><span>CHAPTER MEDALS</span><span>{completedChapters} / {lessons.length}</span></div>
                 <div className="medal-grid">{lessons.map((lesson) => {
