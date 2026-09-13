@@ -489,39 +489,34 @@ function App() {
 
       <section className="hero shell" id="top">
         <div className="hero-copy">
-          <p className="eyebrow"><span />PRIVATE KNOWLEDGE, PUBLICLY USEFUL</p>
-          <h1>Privacy is not<br /><em className="glitch-word" data-text="Secrecy.">Secrecy.</em></h1>
-          <p className="quote-attribution">— ERIC HUGHES, 9 MARCH 1993</p>
+          <p className="eyebrow"><span />FINANCIAL PRIVACY SCHOOL</p>
+          <h1 className="school-headline">Learn financial privacy.<br /><em>One short lesson at a time.</em></h1>
           <p className="hero-intro">
-            Short, interactive lessons for understanding what financial data reveals—and what cryptography can keep private.
+            Understand what money reveals, how privacy tools work, and where to begin.
           </p>
           <div className="hero-actions">
             <button className="primary-button" type="button" disabled={Boolean(profile && !isProgressLoaded)} onClick={() => beginLesson()}>
               {profile ? (isProgressLoaded ? continuePathLabel : 'LOADING YOUR PATH…') : 'ENTER THE LAB'} <span aria-hidden="true">→</span>
             </button>
-            <a className="text-link" href="#curriculum">EXPLORE THE PATH <span aria-hidden="true">↓</span></a>
+            <a className="text-link" href="#curriculum">EXPLORE CURRICULUM <span aria-hidden="true">↓</span></a>
           </div>
           <p className="privacy-note">No account. No wallet. No personal financial data.</p>
         </div>
 
-        <div className="signal-panel" aria-label="Illustration of protected information">
-          <div className="signal-topline"><span>LIVE LEARNING SYSTEM</span><span>FOUNDATION PATH</span></div>
-          <div className="signal-orbit orbit-one" />
-          <div className="signal-orbit orbit-two" />
-          <div className="signal-core">
-            <span className="core-symbol">⌁</span>
-            <span>YOUR DATA<br />IS YOURS</span>
-          </div>
-          <span className="signal-label label-one">OBSERVE</span>
-          <span className="signal-label label-two">PROVE</span>
-          <span className="signal-label label-three">PROTECT</span>
-          <div className="signal-footer"><span>FICTIONAL DATA ONLY</span><span className="pulse">●</span></div>
+        <div className="path-panel" aria-label="Seven chapter learning path">
+          <div className="path-panel-head"><span>YOUR LEARNING PATH</span><span>{completedChapters} / 7 COMPLETE</span></div>
+          <div className="path-list">{lessons.map((lesson) => {
+            const complete = completedLessonIds.includes(lesson.id)
+            const available = builtLessonIds.includes(lesson.id) && (lesson.id === '01-case-for-privacy' || (lesson.id === '02-what-your-money-reveals' && isLessonComplete) || (lesson.id === '03-tools-of-privacy' && completedLessonIds.includes('02-what-your-money-reveals')) || (lesson.id === '04-prove-without-revealing' && completedLessonIds.includes('03-tools-of-privacy')))
+            const next = nextLesson?.id === lesson.id
+            return <button className={`path-row ${next ? 'next' : ''} ${complete ? 'complete' : ''}`} type="button" key={lesson.id} disabled={!available} onClick={() => available && beginLesson(lesson.id)}><b>{lesson.number}</b><span>{lesson.title}</span><small>{complete ? 'COMPLETE' : next ? 'NEXT' : available ? 'READY' : 'LOCKED'}</small><i aria-hidden="true">{available ? '›' : '×'}</i></button>
+          })}</div>
         </div>
       </section>
 
       <section className="principle shell" aria-label="CypherSchool principle">
-        <span className="principle-number">// 001</span>
-        <p>Financial privacy is not about having something to hide. It is about choosing what you reveal.</p>
+        <span className="principle-number">// MANIFESTO</span>
+        <p>“Privacy is not <em>Secrecy.</em>” <small>— ERIC HUGHES, 9 MARCH 1993</small></p>
       </section>
 
       <section className="curriculum shell" id="curriculum">
