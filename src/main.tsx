@@ -20,7 +20,7 @@ type LearnerProfile = {
 }
 
 const profileStorageKey = 'cypherschool.profile'
-const builtLessonIds = ['01-case-for-privacy', '02-what-your-money-reveals', '03-tools-of-privacy', '04-prove-without-revealing']
+const builtLessonIds = ['01-case-for-privacy', '02-what-your-money-reveals', '03-tools-of-privacy', '04-prove-without-revealing', '05-zcash-private-money']
 
 const lessons: Lesson[] = [
   {
@@ -321,7 +321,7 @@ function App() {
   function goToNextPath(nextLessonId: string) {
     setSelectedAnswer('')
     setManifestoStep(0)
-    if (nextLessonId === '02-what-your-money-reveals' || nextLessonId === '03-tools-of-privacy' || nextLessonId === '04-prove-without-revealing') {
+    if (nextLessonId === '02-what-your-money-reveals' || nextLessonId === '03-tools-of-privacy' || nextLessonId === '04-prove-without-revealing' || nextLessonId === '05-zcash-private-money') {
       setActiveLessonId(nextLessonId)
       return
     }
@@ -329,8 +329,8 @@ function App() {
     window.setTimeout(() => document.querySelector('#curriculum')?.scrollIntoView({ behavior: 'smooth' }), 0)
   }
 
-  async function completeLesson(lessonId: '01-case-for-privacy' | '02-what-your-money-reveals' | '03-tools-of-privacy' | '04-prove-without-revealing') {
-    const correctAnswer = lessonId === '01-case-for-privacy' ? 'choice' : lessonId === '02-what-your-money-reveals' ? 'choice-two' : lessonId === '03-tools-of-privacy' ? 'choice-three' : 'choice-four'
+  async function completeLesson(lessonId: '01-case-for-privacy' | '02-what-your-money-reveals' | '03-tools-of-privacy' | '04-prove-without-revealing' | '05-zcash-private-money') {
+    const correctAnswer = lessonId === '01-case-for-privacy' ? 'choice' : lessonId === '02-what-your-money-reveals' ? 'choice-two' : lessonId === '03-tools-of-privacy' ? 'choice-three' : lessonId === '04-prove-without-revealing' ? 'choice-four' : 'choice-five'
     if (!profile || selectedAnswer !== correctAnswer) return
     setIsSavingLesson(true)
     setLessonError('')
@@ -394,7 +394,7 @@ function App() {
           <div className="dashboard-course-head"><span>YOUR LEARNING PATH</span><span>{completedChapters} / 7 COMPLETE</span></div>
           <div className="lesson-grid">{lessons.map((lesson) => {
             const complete = completedLessonIds.includes(lesson.id)
-            const available = builtLessonIds.includes(lesson.id) && (lesson.id === '01-case-for-privacy' || (lesson.id === '02-what-your-money-reveals' && isLessonComplete) || (lesson.id === '03-tools-of-privacy' && completedLessonIds.includes('02-what-your-money-reveals')) || (lesson.id === '04-prove-without-revealing' && completedLessonIds.includes('03-tools-of-privacy')))
+            const available = builtLessonIds.includes(lesson.id) && (lesson.id === '01-case-for-privacy' || (lesson.id === '02-what-your-money-reveals' && isLessonComplete) || (lesson.id === '03-tools-of-privacy' && completedLessonIds.includes('02-what-your-money-reveals')) || (lesson.id === '04-prove-without-revealing' && completedLessonIds.includes('03-tools-of-privacy')) || (lesson.id === '05-zcash-private-money' && completedLessonIds.includes('04-prove-without-revealing')))
             return <article className={`lesson-card ${available ? 'ready' : 'locked'}`} key={lesson.id} role={available ? 'button' : undefined} tabIndex={available ? 0 : undefined} onClick={() => available && beginLesson(lesson.id)} onKeyDown={(event) => { if (available && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); beginLesson(lesson.id) } }}>
               <div className="lesson-meta"><span>CHAPTER {lesson.number}</span><span className="lesson-mark">{lesson.id === '05-zcash-private-money' ? <ZcashMark /> : lesson.mark}</span></div>
               <h3>{lesson.title}</h3><p>{lesson.description}</p>
@@ -452,6 +452,47 @@ function App() {
         </section>
       </main>
     )
+  }
+
+  if (activeLessonId === '05-zcash-private-money') {
+    const isComplete = completedLessonIds.includes('05-zcash-private-money')
+    const pages = [
+      { eyebrow: 'WHAT IS ZCASH?', title: <>A currency built<br />for <em>financial privacy.</em></>, body: 'Zcash is a cryptocurrency network that gives people a choice between public and private on-chain payments. Its currency is ZEC. It uses zero-knowledge cryptography so the network can verify a transaction without making every financial detail public.', note: 'ZEC is the currency people hold and send on the Zcash network—similar to how ETH is used on Ethereum or BTC on Bitcoin.' },
+      { eyebrow: 'TRANSPARENT TRANSACTIONS', title: <>Transparent means<br /><em>public on-chain.</em></>, body: 'A transparent Zcash transaction is the public form of payment. The participating addresses and amount are recorded on the blockchain, where anyone can inspect the trail and potentially connect patterns over time.', note: 'Transparency can be useful for public accounting, but it does not provide financial privacy by default.' },
+      { eyebrow: 'SHIELDED TRANSACTIONS', title: <>Shielded means<br /><em>details protected.</em></>, body: 'A shielded transaction can still be validated by the Zcash network while keeping the amount and participating addresses from being publicly visible on the blockchain. The payment follows the rules without publishing its financial details.', note: 'Shielding changes what observers can see—not whether the network verifies that a payment is valid.' },
+      { eyebrow: 'GETTING STARTED', title: <>Start small.<br />Protect your <em>keys.</em></>, body: 'Choose a wallet that explicitly supports shielded Zcash, such as ZODL Wallet or Vizor Wallet. Back up its recovery phrase offline before receiving funds, then make a small test transaction so you understand the wallet and its fees.', note: 'Never share a recovery phrase or private key. Keep it offline and verify the receiving address carefully before you send ZEC.' },
+    ]
+    const page = pages[manifestoStep]
+    return <main className="lesson-screen zcash-screen">
+      <nav className="lesson-nav shell"><button className="lesson-back" type="button" onClick={() => setActiveLessonId(null)}>← BACK TO PATH</button><span>CHAPTER 05 / 07</span><span>{profile?.xp ?? 0} XP</span></nav>
+      <section className="manifesto-shell shell">
+        <div className="manifesto-rail">{[0, 1, 2, 3, 4].map((step) => <span className={step <= manifestoStep ? 'active' : ''} key={step} />)}</div>
+        {manifestoStep < pages.length && page ? <article className="manifesto-page">
+          <div><p className="eyebrow"><span />{page.eyebrow}</p><p className="lesson-kicker">// 05.0{manifestoStep + 1}</p><h1>{page.title}</h1></div>
+          <div className="manifesto-reading">
+            {manifestoStep === 1 && <div className="zcash-compare"><div><b>TRANSPARENT</b><span>Address · amount · trail visible</span></div><div><b>SHIELDED</b><span>Details protected · validity verified</span></div></div>}
+            {manifestoStep === 2 && <div className="zcash-proof"><ZcashMark /><span>SHIELDED TRANSACTION</span><b>VALID ON-CHAIN</b></div>}
+            {manifestoStep === 3 && <div className="zcash-start"><b>01</b><span>Choose shielded support</span><b>02</b><span>Back up offline</span><b>03</b><span>Test with a small amount</span></div>}
+            <p>{page.body}</p><aside>{page.note}</aside>
+            {manifestoStep > 0 && <button className="review-notes" type="button" onClick={() => setManifestoStep((step) => step - 1)}>← PREVIOUS NOTE</button>}
+            <button className="primary-button" type="button" onClick={() => setManifestoStep((step) => step + 1)}>CONTINUE <span>→</span></button>
+          </div>
+        </article> : <article className="manifesto-page manifesto-check">
+          <div><p className="eyebrow"><span />PRIVATE MONEY CHECK</p><p className="lesson-kicker">// 05.05</p><h1>What can a<br /><em>shielded payment</em> protect?</h1></div>
+          <div className="manifesto-reading">{isComplete ? <>
+            <button className="review-notes" type="button" onClick={() => setManifestoStep(3)}>← REVIEW PREVIOUS NOTES</button>
+            <div className="answer-options recorded-answer"><button className="selected" type="button" disabled>The amount and participating addresses from public on-chain view.</button><button type="button" disabled>Every detail of a person’s life in every context.</button><button type="button" disabled>The validity of a payment from the network.</button></div>
+            <aside>Chapter complete. +100 XP and Medal 05 are synced to your learning profile.</aside>
+            <div className="completion-actions"><button className="primary-button" type="button" onClick={() => goToNextPath('06-arcium-private-computation')}>NEXT PATH <span>→</span></button><button className="path-home-button" type="button" onClick={() => setActiveLessonId(null)}>RETURN TO MAIN HOME</button></div>
+          </> : <>
+            <button className="review-notes" type="button" onClick={() => setManifestoStep(3)}>← REVIEW PREVIOUS NOTES</button>
+            <div className="answer-options"><button className={selectedAnswer === 'choice-five' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('choice-five')}>The amount and participating addresses from public on-chain view.</button><button className={selectedAnswer === 'wrong-nine' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('wrong-nine')}>Every detail of a person’s life in every context.</button><button className={selectedAnswer === 'wrong-ten' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('wrong-ten')}>The validity of a payment from the network.</button></div>
+            {selectedAnswer && selectedAnswer !== 'choice-five' && <p className="answer-note">Not quite. Shielding can protect transaction details on-chain while the network still validates that the transaction follows its rules.</p>}{lessonError && <p className="alias-error" role="alert">{lessonError}</p>}
+            <button className="primary-button" type="button" disabled={selectedAnswer !== 'choice-five' || isSavingLesson} onClick={() => completeLesson('05-zcash-private-money')}>{isSavingLesson ? 'SAVING…' : 'COMPLETE CHAPTER'} <span>→</span></button>
+          </>}</div>
+        </article>}
+      </section>
+    </main>
   }
 
   if (activeLessonId === '04-prove-without-revealing') {
@@ -579,7 +620,7 @@ function App() {
           <div className="path-panel-head"><span>YOUR LEARNING PATH</span><span>{completedChapters} / 7 COMPLETE</span></div>
           <div className="path-list">{lessons.map((lesson) => {
             const complete = completedLessonIds.includes(lesson.id)
-            const available = builtLessonIds.includes(lesson.id) && (lesson.id === '01-case-for-privacy' || (lesson.id === '02-what-your-money-reveals' && isLessonComplete) || (lesson.id === '03-tools-of-privacy' && completedLessonIds.includes('02-what-your-money-reveals')) || (lesson.id === '04-prove-without-revealing' && completedLessonIds.includes('03-tools-of-privacy')))
+            const available = builtLessonIds.includes(lesson.id) && (lesson.id === '01-case-for-privacy' || (lesson.id === '02-what-your-money-reveals' && isLessonComplete) || (lesson.id === '03-tools-of-privacy' && completedLessonIds.includes('02-what-your-money-reveals')) || (lesson.id === '04-prove-without-revealing' && completedLessonIds.includes('03-tools-of-privacy')) || (lesson.id === '05-zcash-private-money' && completedLessonIds.includes('04-prove-without-revealing')))
             const next = nextLesson?.id === lesson.id
             return <button className={`path-row ${next ? 'next' : ''} ${complete ? 'complete' : ''}`} type="button" key={lesson.id} disabled={!available} onClick={() => available && beginLesson(lesson.id)}><b>{lesson.number}</b><span>{lesson.title}</span><small>{complete ? 'COMPLETE' : next ? 'NEXT' : available ? 'READY' : 'LOCKED'}</small><i aria-hidden="true">{available ? '›' : '×'}</i></button>
           })}</div>
