@@ -88,6 +88,15 @@ async function restoreProfile(request: Request, env: Env) {
   return json({ profile: publicProfile(profile), sessionToken })
 }
 
+async function replaceRecoveryCode(request: Request, env: Env) {
+  const profile = await authorize(request, env)
+  if (!profile) return json({ error: 'Your learning session has expired.' }, { status: 401 })
+  const recoveryCode = generateCode()
+  await env.DB.prepare('UPDATE profiles SET recovery_code_hash = ?, updated_at = ? WHERE id = ?')
+    .bind(await hash(recoveryCode), new Date().toISOString(), profile.id).run()
+  return json({ recoveryCode })
+}
+
 async function getProgress(request: Request, env: Env) {
   const profile = await authorize(request, env)
   if (!profile) return json({ error: 'Your learning session has expired.' }, { status: 401 })
@@ -123,6 +132,7 @@ export default {
     const url = new URL(request.url)
     if (url.pathname === '/api/profiles' && request.method === 'POST') return createProfile(request, env)
     if (url.pathname === '/api/profiles/restore' && request.method === 'POST') return restoreProfile(request, env)
+    if (url.pathname === '/api/profiles/recovery' && request.method === 'POST') return replaceRecoveryCode(request, env)
     if (url.pathname === '/api/progress' && request.method === 'GET') return getProgress(request, env)
     if (url.pathname === '/api/progress' && request.method === 'PUT') return updateProgress(request, env)
     return env.ASSETS.fetch(request)

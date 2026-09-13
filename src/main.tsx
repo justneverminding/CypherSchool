@@ -100,6 +100,7 @@ function App() {
   const [recoveryCodeInput, setRecoveryCodeInput] = useState('')
   const [isSavingProfile, setIsSavingProfile] = useState(false)
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null)
+  const [isDashboardOpen, setIsDashboardOpen] = useState(false)
   const [manifestoStep, setManifestoStep] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState('')
   const [isSavingLesson, setIsSavingLesson] = useState(false)
@@ -107,6 +108,9 @@ function App() {
   const [isLessonComplete, setIsLessonComplete] = useState(false)
   const [completedLessonIds, setCompletedLessonIds] = useState<string[]>([])
   const [isProfileOpen, setIsProfileOpen] = useState(false)
+  const [replacementRecoveryCode, setReplacementRecoveryCode] = useState<string | null>(null)
+  const [isReplacingRecoveryCode, setIsReplacingRecoveryCode] = useState(false)
+  const [recoveryReplacementError, setRecoveryReplacementError] = useState('')
   const [isProgressLoaded, setIsProgressLoaded] = useState(false)
   const progressRequestId = useRef(0)
 
@@ -115,7 +119,10 @@ function App() {
       const savedProfile = window.localStorage.getItem(profileStorageKey)
       if (savedProfile) {
         const parsedProfile = JSON.parse(savedProfile) as Partial<LearnerProfile>
-        if (parsedProfile.id && parsedProfile.alias && parsedProfile.sessionToken) setProfile(parsedProfile as LearnerProfile)
+        if (parsedProfile.id && parsedProfile.alias && parsedProfile.sessionToken) {
+          setProfile(parsedProfile as LearnerProfile)
+          setIsDashboardOpen(true)
+        }
         else window.localStorage.removeItem(profileStorageKey)
       }
     } catch {
@@ -241,6 +248,7 @@ function App() {
       setProfile(nextProfile)
       setIsAliasDialogOpen(false)
       setActiveLessonId(null)
+      setIsDashboardOpen(true)
     } catch {
       setAliasError('The learning service is unavailable. Please try again shortly.')
     } finally {
@@ -251,7 +259,7 @@ function App() {
   function enterLab() {
     setIsAliasDialogOpen(false)
     setNewRecoveryCode(null)
-    setActiveLessonId('01-case-for-privacy')
+    setIsDashboardOpen(true)
   }
 
   function nextBuiltLessonId() {
@@ -260,6 +268,10 @@ function App() {
 
   function beginLesson(requestedLessonId?: string) {
     if (profile) {
+      if (!requestedLessonId) {
+        setIsDashboardOpen(true)
+        return
+      }
       const nextLessonId = requestedLessonId ?? nextBuiltLessonId()
       if (!nextLessonId) {
         document.querySelector('#curriculum')?.scrollIntoView({ behavior: 'smooth' })
@@ -281,6 +293,29 @@ function App() {
     setIsLessonComplete(false)
     setIsProfileOpen(false)
     setActiveLessonId(null)
+    setIsDashboardOpen(false)
+  }
+
+  async function replaceRecoveryCode() {
+    if (!profile) return
+    setIsReplacingRecoveryCode(true)
+    setRecoveryReplacementError('')
+    try {
+      const response = await fetch('/api/profiles/recovery', {
+        method: 'POST',
+        headers: { 'x-cypherschool-profile': profile.id, 'x-cypherschool-session': profile.sessionToken },
+      })
+      const result = await response.json() as { error?: string; recoveryCode?: string }
+      if (!response.ok || !result.recoveryCode) {
+        setRecoveryReplacementError(result.error ?? 'We could not generate a recovery code. Try again shortly.')
+        return
+      }
+      setReplacementRecoveryCode(result.recoveryCode)
+    } catch {
+      setRecoveryReplacementError('The learning service is unavailable. Please try again shortly.')
+    } finally {
+      setIsReplacingRecoveryCode(false)
+    }
   }
 
   function goToNextPath(nextLessonId: string) {
@@ -331,6 +366,45 @@ function App() {
   const chaptersRemaining = lessons.length - completedChapters
   const nextLesson = lessons.find((lesson) => lesson.id === nextBuiltLessonId())
   const continuePathLabel = nextLesson ? `CONTINUE: ${nextLesson.number} — ${nextLesson.title.toUpperCase()}` : 'VIEW NEXT PATH'
+
+  if (isDashboardOpen && !activeLessonId) {
+    return <main className="dashboard-screen">
+      <nav className="nav shell" aria-label="Dashboard navigation">
+        <button className="wordmark nav-button" type="button" onClick={() => setIsDashboardOpen(false)} aria-label="Return to CypherSchool home">
+          <span className="wordmark-mark">C</span><span>CYPHERSCHOOL</span>
+        </button>
+        <span className="nav-note">YOUR 7 CHAPTER LEARNING PATH</span>
+        <button className="nav-link nav-button" type="button" onClick={logOut}>LOG OUT <span aria-hidden="true">↗</span></button>
+      </nav>
+      <section className="dashboard-shell shell">
+        <div className="dashboard-intro">
+          <p className="eyebrow"><span />YOUR LEARNING SPACE</p>
+          <h1>Learn at<br />your <em>own pace.</em></h1>
+          <p>Each chapter gives you one clear idea, a fictional scenario, and a short check before you move forward.</p>
+          <button className="dashboard-profile" type="button" onClick={() => setIsProfileOpen((open) => !open)} aria-expanded={isProfileOpen} aria-controls="dashboard-profile"><span>{profile?.alias.slice(0, 1).toUpperCase()}</span><div><small>LEARNING AS</small><strong>{profile?.alias}</strong></div><b>{profile?.xp ?? 0} XP</b></button>
+          {isProfileOpen && <section className="dashboard-profile-details" id="dashboard-profile" aria-label="Your learning profile">
+            <div className="profile-stats"><div><b>{profile?.xp ?? 0}</b><span>TOTAL XP</span></div><div><b>{chaptersRemaining}</b><span>CHAPTERS LEFT</span></div></div>
+            <div className="medal-header"><span>CHAPTER MEDALS</span><span>{completedChapters} / {lessons.length}</span></div>
+            <div className="medal-grid">{lessons.map((lesson) => { const earned = completedLessonIds.includes(lesson.id); return <div className={earned ? 'medal earned' : 'medal'} key={lesson.number}><span>{earned ? '✦' : lesson.number}</span><small>{earned ? 'EARNED' : 'LOCKED'}</small></div> })}</div>
+            <div className="recovery-replace"><p>RECOVERY CODE</p>{replacementRecoveryCode ? <><strong>{replacementRecoveryCode}</strong><small>Save this new code now. Your previous recovery code no longer works.</small></> : <><small>Need a replacement? Generate a new code for restoring this profile on another device.</small><button type="button" onClick={replaceRecoveryCode} disabled={isReplacingRecoveryCode}>{isReplacingRecoveryCode ? 'GENERATING…' : 'GENERATE NEW CODE'}</button></>}{recoveryReplacementError && <span className="alias-error">{recoveryReplacementError}</span>}</div>
+          </section>}
+          <button className="primary-button" type="button" disabled={!nextLesson} onClick={() => nextLesson && beginLesson(nextLesson.id)}>{nextLesson ? `START ${nextLesson.number}` : 'PATH COMPLETE'} <span>→</span></button>
+        </div>
+        <section className="dashboard-course" aria-label="Your seven chapter learning path">
+          <div className="dashboard-course-head"><span>YOUR LEARNING PATH</span><span>{completedChapters} / 7 COMPLETE</span></div>
+          <div className="lesson-grid">{lessons.map((lesson) => {
+            const complete = completedLessonIds.includes(lesson.id)
+            const available = builtLessonIds.includes(lesson.id) && (lesson.id === '01-case-for-privacy' || (lesson.id === '02-what-your-money-reveals' && isLessonComplete) || (lesson.id === '03-tools-of-privacy' && completedLessonIds.includes('02-what-your-money-reveals')) || (lesson.id === '04-prove-without-revealing' && completedLessonIds.includes('03-tools-of-privacy')))
+            return <article className={`lesson-card ${available ? 'ready' : 'locked'}`} key={lesson.id} role={available ? 'button' : undefined} tabIndex={available ? 0 : undefined} onClick={() => available && beginLesson(lesson.id)} onKeyDown={(event) => { if (available && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); beginLesson(lesson.id) } }}>
+              <div className="lesson-meta"><span>CHAPTER {lesson.number}</span><span className="lesson-mark">{lesson.id === '05-zcash-private-money' ? <ZcashMark /> : lesson.mark}</span></div>
+              <h3>{lesson.title}</h3><p>{lesson.description}</p>
+              <span className="lesson-action">{complete ? 'REVISIT CHAPTER' : available ? 'BEGIN CHAPTER' : 'UNLOCKS NEXT'} <span aria-hidden="true">→</span></span>
+            </article>
+          })}</div>
+        </section>
+      </section>
+    </main>
+  }
 
   if (activeLessonId === '02-what-your-money-reveals') {
     const exposurePages = [
@@ -484,7 +558,6 @@ function App() {
             )}
           </div>
         ) : <span className="nav-note">A PRIVACY LEARNING LAB</span>}
-        <a className="nav-link" href="#curriculum">CURRICULUM <span aria-hidden="true">↘</span></a>
       </nav>
 
       <section className="hero shell" id="top">
@@ -498,7 +571,6 @@ function App() {
             <button className="primary-button" type="button" disabled={Boolean(profile && !isProgressLoaded)} onClick={() => beginLesson()}>
               {profile ? (isProgressLoaded ? continuePathLabel : 'LOADING YOUR PATH…') : 'ENTER THE LAB'} <span aria-hidden="true">→</span>
             </button>
-            <a className="text-link" href="#curriculum">EXPLORE CURRICULUM <span aria-hidden="true">↓</span></a>
           </div>
           <p className="privacy-note">No account. No wallet. No personal financial data.</p>
         </div>
@@ -522,24 +594,15 @@ function App() {
       <section className="curriculum shell" id="curriculum">
         <div className="section-heading">
           <div>
-            <p className="eyebrow"><span />THE FIRST PATH</p>
-            <h2>Seven chapters.<br />One clearer view.</h2>
+            <p className="eyebrow"><span />HOW CYPHERSCHOOL WORKS</p>
+            <h2>Learn the ideas.<br />Keep your agency.</h2>
           </div>
-          <p className="section-summary">A practical path from why privacy matters to the tools and systems that can protect it.</p>
         </div>
 
-        <div className="lesson-grid">
-          {lessons.map((lesson) => {
-            const isAvailable = lesson.id === '01-case-for-privacy' || (lesson.id === '02-what-your-money-reveals' && isLessonComplete) || (lesson.id === '03-tools-of-privacy' && completedLessonIds.includes('02-what-your-money-reveals')) || (lesson.id === '04-prove-without-revealing' && completedLessonIds.includes('03-tools-of-privacy'))
-            return <article className={`lesson-card ${isAvailable ? 'ready' : 'locked'}`} key={lesson.number}>
-              <div className="lesson-meta"><span>LAB {lesson.number}</span><span className="lesson-mark">{lesson.id === '05-zcash-private-money' ? <ZcashMark /> : lesson.mark}</span></div>
-              <h3>{lesson.title}</h3>
-              <p>{lesson.description}</p>
-              <button className="lesson-action" type="button" disabled={!isAvailable} onClick={isAvailable ? () => beginLesson(lesson.id) : undefined}>
-                {isAvailable ? (completedLessonIds.includes(lesson.id) ? 'REVISIT LESSON' : 'BEGIN LESSON') : 'UNLOCKS NEXT'} <span aria-hidden="true">→</span>
-              </button>
-            </article>
-          })}
+        <div className="how-grid">
+          <article><span>01</span><h3>Short lessons</h3><p>Move through one focused idea at a time, then check your understanding before continuing.</p></article>
+          <article><span>02</span><h3>Fictional scenarios</h3><p>Learn from safe examples, not real wallets, balances, identities, or personal financial data.</p></article>
+          <article><span>03</span><h3>Your learning path</h3><p>Choose an alias to save XP and progress. Restore it anywhere with the recovery code you keep.</p></article>
         </div>
       </section>
 
@@ -600,7 +663,7 @@ function App() {
                 <div className="recovery-code" aria-label={`Your recovery code is ${newRecoveryCode}`}>{newRecoveryCode}</div>
                 <p className="recovery-warning">This is the only time CypherSchool will show this code.</p>
                 <label className="recovery-check"><input type="checkbox" checked={hasSavedRecoveryCode} onChange={(event) => setHasSavedRecoveryCode(event.target.checked)} /><span>I have saved my recovery code.</span></label>
-                <button className="primary-button dialog-submit" type="button" onClick={enterLab} disabled={!hasSavedRecoveryCode}>BEGIN LAB 01 <span aria-hidden="true">→</span></button>
+                <button className="primary-button dialog-submit" type="button" onClick={enterLab} disabled={!hasSavedRecoveryCode}>OPEN YOUR DASHBOARD <span aria-hidden="true">→</span></button>
               </div>
             ) : isRestoring ? (
               <>
