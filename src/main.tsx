@@ -109,6 +109,7 @@ function App() {
   const [isLessonComplete, setIsLessonComplete] = useState(false)
   const [completedLessonIds, setCompletedLessonIds] = useState<string[]>([])
   const [isProfileOpen, setIsProfileOpen] = useState(false)
+  const [isAvatarPickerOpen, setIsAvatarPickerOpen] = useState(false)
   const [replacementRecoveryCode, setReplacementRecoveryCode] = useState<string | null>(null)
   const [isReplacingRecoveryCode, setIsReplacingRecoveryCode] = useState(false)
   const [recoveryReplacementError, setRecoveryReplacementError] = useState('')
@@ -305,6 +306,7 @@ function App() {
     const nextProfile = { ...result.profile, sessionToken: profile.sessionToken }
     window.localStorage.setItem(profileStorageKey, JSON.stringify(nextProfile))
     setProfile(nextProfile)
+    setIsAvatarPickerOpen(false)
   }
 
   function saveCompletionCard() {
@@ -410,7 +412,7 @@ function App() {
             <div className="profile-stats"><div><b>{profile?.xp ?? 0}</b><span>TOTAL XP</span></div><div><b>{chaptersRemaining}</b><span>CHAPTERS LEFT</span></div></div>
             <div className="medal-header"><span>CHAPTER MEDALS</span><span>{completedChapters} / {lessons.length}</span></div>
             <div className="medal-grid">{lessons.map((lesson) => { const earned = completedLessonIds.includes(lesson.id); return <div className={earned ? 'medal earned' : 'medal'} key={lesson.number}><span>{earned ? '✦' : lesson.number}</span><small>{earned ? 'EARNED' : 'LOCKED'}</small></div> })}</div>
-            <div className="avatar-picker"><p>CHOOSE YOUR COLLECTIBLE PFP</p><div>{Array.from({ length: 20 }, (_, avatarIndex) => <button type="button" aria-label={`Choose avatar ${avatarIndex + 1}`} className={(profile?.avatarIndex ?? 0) === avatarIndex ? 'selected' : ''} key={avatarIndex} onClick={() => selectAvatar(avatarIndex)} style={{ backgroundImage: 'url(/cypherschool-pfps.png)', backgroundSize: '500% 400%', backgroundPosition: `${(avatarIndex % 5) * 25}% ${Math.floor(avatarIndex / 5) * 33.333}%` }} />)}</div></div>
+            <div className="avatar-picker"><p>YOUR COLLECTIBLE PFP</p><button className="avatar-current" type="button" onClick={() => setIsAvatarPickerOpen((open) => !open)} aria-expanded={isAvatarPickerOpen} style={{ backgroundImage: 'url(/cypherschool-pfps.png)', backgroundSize: '500% 400%', backgroundPosition: `${((profile?.avatarIndex ?? 0) % 5) * 25}% ${Math.floor((profile?.avatarIndex ?? 0) / 5) * 33.333}%` }} />{isAvatarPickerOpen && <div className="avatar-options">{Array.from({ length: 20 }, (_, avatarIndex) => <button type="button" aria-label={`Choose avatar ${avatarIndex + 1}`} className={(profile?.avatarIndex ?? 0) === avatarIndex ? 'selected' : ''} key={avatarIndex} onClick={() => selectAvatar(avatarIndex)} style={{ backgroundImage: 'url(/cypherschool-pfps.png)', backgroundSize: '500% 400%', backgroundPosition: `${(avatarIndex % 5) * 25}% ${Math.floor(avatarIndex / 5) * 33.333}%` }} />)}</div>}</div>
             {isCourseComplete && <div className="gold-medal"><span>✦</span><div><b>GOLD COURSE MEDAL</b><small>ALL 7 CHAPTERS COMPLETE</small></div></div>}
             <div className="recovery-replace"><p>RECOVERY CODE</p>{replacementRecoveryCode ? <><strong>{replacementRecoveryCode}</strong><small>Save this new code now. Your previous recovery code no longer works.</small></> : <><small>Need a replacement? Generate a new code for restoring this profile on another device.</small><button type="button" onClick={replaceRecoveryCode} disabled={isReplacingRecoveryCode}>{isReplacingRecoveryCode ? 'GENERATING…' : 'GENERATE NEW CODE'}</button></>}{recoveryReplacementError && <span className="alias-error">{recoveryReplacementError}</span>}</div>
           </section>}
