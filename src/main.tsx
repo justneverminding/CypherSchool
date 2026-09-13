@@ -20,7 +20,7 @@ type LearnerProfile = {
 }
 
 const profileStorageKey = 'cypherschool.profile'
-const builtLessonIds = ['01-case-for-privacy', '02-what-your-money-reveals', '03-tools-of-privacy', '04-prove-without-revealing', '05-zcash-private-money']
+const builtLessonIds = ['01-case-for-privacy', '02-what-your-money-reveals', '03-tools-of-privacy', '04-prove-without-revealing', '05-zcash-private-money', '06-arcium-private-computation']
 
 const lessons: Lesson[] = [
   {
@@ -321,7 +321,7 @@ function App() {
   function goToNextPath(nextLessonId: string) {
     setSelectedAnswer('')
     setManifestoStep(0)
-    if (nextLessonId === '02-what-your-money-reveals' || nextLessonId === '03-tools-of-privacy' || nextLessonId === '04-prove-without-revealing' || nextLessonId === '05-zcash-private-money') {
+    if (nextLessonId === '02-what-your-money-reveals' || nextLessonId === '03-tools-of-privacy' || nextLessonId === '04-prove-without-revealing' || nextLessonId === '05-zcash-private-money' || nextLessonId === '06-arcium-private-computation') {
       setActiveLessonId(nextLessonId)
       return
     }
@@ -329,8 +329,8 @@ function App() {
     window.setTimeout(() => document.querySelector('#curriculum')?.scrollIntoView({ behavior: 'smooth' }), 0)
   }
 
-  async function completeLesson(lessonId: '01-case-for-privacy' | '02-what-your-money-reveals' | '03-tools-of-privacy' | '04-prove-without-revealing' | '05-zcash-private-money') {
-    const correctAnswer = lessonId === '01-case-for-privacy' ? 'choice' : lessonId === '02-what-your-money-reveals' ? 'choice-two' : lessonId === '03-tools-of-privacy' ? 'choice-three' : lessonId === '04-prove-without-revealing' ? 'choice-four' : 'choice-five'
+  async function completeLesson(lessonId: '01-case-for-privacy' | '02-what-your-money-reveals' | '03-tools-of-privacy' | '04-prove-without-revealing' | '05-zcash-private-money' | '06-arcium-private-computation') {
+    const correctAnswer = lessonId === '01-case-for-privacy' ? 'choice' : lessonId === '02-what-your-money-reveals' ? 'choice-two' : lessonId === '03-tools-of-privacy' ? 'choice-three' : lessonId === '04-prove-without-revealing' ? 'choice-four' : lessonId === '05-zcash-private-money' ? 'choice-five' : 'choice-six'
     if (!profile || selectedAnswer !== correctAnswer) return
     setIsSavingLesson(true)
     setLessonError('')
@@ -394,7 +394,7 @@ function App() {
           <div className="dashboard-course-head"><span>YOUR LEARNING PATH</span><span>{completedChapters} / 7 COMPLETE</span></div>
           <div className="lesson-grid">{lessons.map((lesson) => {
             const complete = completedLessonIds.includes(lesson.id)
-            const available = builtLessonIds.includes(lesson.id) && (lesson.id === '01-case-for-privacy' || (lesson.id === '02-what-your-money-reveals' && isLessonComplete) || (lesson.id === '03-tools-of-privacy' && completedLessonIds.includes('02-what-your-money-reveals')) || (lesson.id === '04-prove-without-revealing' && completedLessonIds.includes('03-tools-of-privacy')) || (lesson.id === '05-zcash-private-money' && completedLessonIds.includes('04-prove-without-revealing')))
+            const available = builtLessonIds.includes(lesson.id) && (lesson.id === '01-case-for-privacy' || (lesson.id === '02-what-your-money-reveals' && isLessonComplete) || (lesson.id === '03-tools-of-privacy' && completedLessonIds.includes('02-what-your-money-reveals')) || (lesson.id === '04-prove-without-revealing' && completedLessonIds.includes('03-tools-of-privacy')) || (lesson.id === '05-zcash-private-money' && completedLessonIds.includes('04-prove-without-revealing')) || (lesson.id === '06-arcium-private-computation' && completedLessonIds.includes('05-zcash-private-money')))
             return <article className={`lesson-card ${available ? 'ready' : 'locked'}`} key={lesson.id} role={available ? 'button' : undefined} tabIndex={available ? 0 : undefined} onClick={() => available && beginLesson(lesson.id)} onKeyDown={(event) => { if (available && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); beginLesson(lesson.id) } }}>
               <div className="lesson-meta"><span>CHAPTER {lesson.number}</span><span className="lesson-mark">{lesson.id === '05-zcash-private-money' ? <ZcashMark /> : lesson.mark}</span></div>
               <h3>{lesson.title}</h3><p>{lesson.description}</p>
@@ -452,6 +452,44 @@ function App() {
         </section>
       </main>
     )
+  }
+
+  if (activeLessonId === '06-arcium-private-computation') {
+    const isComplete = completedLessonIds.includes('06-arcium-private-computation')
+    const pages = [
+      { eyebrow: 'PRIVATE COMPUTATION', title: <>Data is often exposed<br />when it is <em>used.</em></>, body: 'Encryption can protect data while it is stored or sent. But many systems still decrypt sensitive data before they calculate with it—creating a point where a processor, service, or database can see it.', note: 'Private computation asks a different question: can a system calculate a result without first opening every input?' },
+      { eyebrow: 'MULTI-PARTY COMPUTATION', title: <>One answer.<br />No single party sees <em>everything.</em></>, body: 'Multi-Party Computation, or MPC, lets several participants jointly compute with sensitive inputs. Each participant works with a protected share rather than receiving the complete underlying data.', note: 'The aim is to reveal the useful result while keeping the inputs confidential from any one computing party.' },
+      { eyebrow: 'ARCIUM', title: <>Encrypted computation<br />for <em>applications.</em></>, body: 'Arcium is a private computation network that uses MPC so applications can process encrypted data without exposing the full inputs to any single node. It works with Solana for coordination and application integration.', note: 'This can enable private financial logic, confidential DeFi, sealed bids, and other applications where a result is useful but the raw data is sensitive.' },
+    ]
+    const page = pages[manifestoStep]
+    return <main className="lesson-screen arcium-screen">
+      <nav className="lesson-nav shell"><button className="lesson-back" type="button" onClick={() => setActiveLessonId(null)}>← BACK TO PATH</button><span>CHAPTER 06 / 07</span><span>{profile?.xp ?? 0} XP</span></nav>
+      <section className="manifesto-shell shell">
+        <div className="manifesto-rail">{[0, 1, 2, 3].map((step) => <span className={step <= manifestoStep ? 'active' : ''} key={step} />)}</div>
+        {manifestoStep < pages.length && page ? <article className="manifesto-page">
+          <div><p className="eyebrow"><span />{page.eyebrow}</p><p className="lesson-kicker">// 06.0{manifestoStep + 1}</p><h1>{page.title}</h1></div>
+          <div className="manifesto-reading">
+            {manifestoStep === 1 && <div className="mpc-shares"><span>PRIVATE INPUT</span><b>SHARE A</b><b>SHARE B</b><b>SHARE C</b><strong>COMPUTE TOGETHER → RESULT</strong></div>}
+            {manifestoStep === 2 && <div className="arcium-flow"><span>ENCRYPTED INPUT</span><b>MPC NETWORK</b><span>PRIVATE RESULT</span></div>}
+            <p>{page.body}</p><aside>{page.note}</aside>
+            {manifestoStep > 0 && <button className="review-notes" type="button" onClick={() => setManifestoStep((step) => step - 1)}>← PREVIOUS NOTE</button>}
+            <button className="primary-button" type="button" onClick={() => setManifestoStep((step) => step + 1)}>CONTINUE <span>→</span></button>
+          </div>
+        </article> : <article className="manifesto-page manifesto-check">
+          <div><p className="eyebrow"><span />MPC CHECK</p><p className="lesson-kicker">// 06.04</p><h1>What does MPC<br />help an app <em>do?</em></h1></div>
+          <div className="manifesto-reading">{isComplete ? <>
+            <button className="review-notes" type="button" onClick={() => setManifestoStep(2)}>← REVIEW PREVIOUS NOTES</button>
+            <div className="answer-options recorded-answer"><button className="selected" type="button" disabled>Compute with sensitive inputs without giving any single party the full data.</button><button type="button" disabled>Make sensitive data public more efficiently.</button><button type="button" disabled>Remove the need to verify a computation.</button></div>
+            <aside>Chapter complete. +100 XP and Medal 06 are synced to your learning profile.</aside><div className="completion-actions"><button className="primary-button" type="button" onClick={() => goToNextPath('07-stealf')}>NEXT PATH <span>→</span></button><button className="path-home-button" type="button" onClick={() => setActiveLessonId(null)}>RETURN TO MAIN HOME</button></div>
+          </> : <>
+            <button className="review-notes" type="button" onClick={() => setManifestoStep(2)}>← REVIEW PREVIOUS NOTES</button>
+            <div className="answer-options"><button className={selectedAnswer === 'choice-six' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('choice-six')}>Compute with sensitive inputs without giving any single party the full data.</button><button className={selectedAnswer === 'wrong-eleven' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('wrong-eleven')}>Make sensitive data public more efficiently.</button><button className={selectedAnswer === 'wrong-twelve' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('wrong-twelve')}>Remove the need to verify a computation.</button></div>
+            {selectedAnswer && selectedAnswer !== 'choice-six' && <p className="answer-note">Not quite. MPC keeps the inputs confidential while the participants work together to produce a result.</p>}{lessonError && <p className="alias-error" role="alert">{lessonError}</p>}
+            <button className="primary-button" type="button" disabled={selectedAnswer !== 'choice-six' || isSavingLesson} onClick={() => completeLesson('06-arcium-private-computation')}>{isSavingLesson ? 'SAVING…' : 'COMPLETE CHAPTER'} <span>→</span></button>
+          </>}</div>
+        </article>}
+      </section>
+    </main>
   }
 
   if (activeLessonId === '05-zcash-private-money') {
@@ -620,7 +658,7 @@ function App() {
           <div className="path-panel-head"><span>YOUR LEARNING PATH</span><span>{completedChapters} / 7 COMPLETE</span></div>
           <div className="path-list">{lessons.map((lesson) => {
             const complete = completedLessonIds.includes(lesson.id)
-            const available = builtLessonIds.includes(lesson.id) && (lesson.id === '01-case-for-privacy' || (lesson.id === '02-what-your-money-reveals' && isLessonComplete) || (lesson.id === '03-tools-of-privacy' && completedLessonIds.includes('02-what-your-money-reveals')) || (lesson.id === '04-prove-without-revealing' && completedLessonIds.includes('03-tools-of-privacy')) || (lesson.id === '05-zcash-private-money' && completedLessonIds.includes('04-prove-without-revealing')))
+            const available = builtLessonIds.includes(lesson.id) && (lesson.id === '01-case-for-privacy' || (lesson.id === '02-what-your-money-reveals' && isLessonComplete) || (lesson.id === '03-tools-of-privacy' && completedLessonIds.includes('02-what-your-money-reveals')) || (lesson.id === '04-prove-without-revealing' && completedLessonIds.includes('03-tools-of-privacy')) || (lesson.id === '05-zcash-private-money' && completedLessonIds.includes('04-prove-without-revealing')) || (lesson.id === '06-arcium-private-computation' && completedLessonIds.includes('05-zcash-private-money')))
             const next = nextLesson?.id === lesson.id
             return <button className={`path-row ${next ? 'next' : ''} ${complete ? 'complete' : ''}`} type="button" key={lesson.id} disabled={!available} onClick={() => available && beginLesson(lesson.id)}><b>{lesson.number}</b><span>{lesson.title}</span><small>{complete ? 'COMPLETE' : next ? 'NEXT' : available ? 'READY' : 'LOCKED'}</small><i aria-hidden="true">{available ? '›' : '×'}</i></button>
           })}</div>
