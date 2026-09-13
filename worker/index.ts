@@ -3,7 +3,7 @@ export interface Env {
   ASSETS: Fetcher
 }
 
-type Profile = { id: string; alias: string; xp: number; created_at: string }
+type Profile = { id: string; alias: string; xp: number; avatar_index: number; created_at: string }
 
 const json = (body: unknown, init: ResponseInit = {}) => new Response(JSON.stringify(body), {
   ...init,
@@ -40,7 +40,7 @@ async function hash(value: string) {
 }
 
 function publicProfile(profile: Profile) {
-  return { id: profile.id, alias: profile.alias, xp: profile.xp, createdAt: profile.created_at }
+  return { id: profile.id, alias: profile.alias, xp: profile.xp, avatarIndex: profile.avatar_index, createdAt: profile.created_at }
 }
 
 async function readBody(request: Request) {
@@ -51,7 +51,7 @@ async function authorize(request: Request, env: Env) {
   const profileId = request.headers.get('x-cypherschool-profile')
   const token = request.headers.get('x-cypherschool-session')
   if (!profileId || !token) return null
-  return env.DB.prepare('SELECT id, alias, xp, created_at FROM profiles WHERE id = ? AND session_token_hash = ?')
+  return env.DB.prepare('SELECT id, alias, xp, avatar_index, created_at FROM profiles WHERE id = ? AND session_token_hash = ?')
     .bind(profileId, await hash(token)).first<Profile>()
 }
 
@@ -71,7 +71,7 @@ async function createProfile(request: Request, env: Env) {
   } catch {
     return json({ error: 'That alias is already in use. Try another one.' }, { status: 409 })
   }
-  return json({ profile: { id, alias, xp: 0, createdAt: now }, recoveryCode, sessionToken }, { status: 201 })
+  return json({ profile: { id, alias, xp: 0, avatarIndex: 0, createdAt: now }, recoveryCode, sessionToken }, { status: 201 })
 }
 
 async function restoreProfile(request: Request, env: Env) {
@@ -79,7 +79,7 @@ async function restoreProfile(request: Request, env: Env) {
   const alias = normalizeAlias(body?.alias)
   const recoveryCode = typeof body?.recoveryCode === 'string' ? body.recoveryCode.trim().toUpperCase() : null
   if (!alias || !recoveryCode) return badRequest('Enter both your alias and recovery code.')
-  const profile = await env.DB.prepare('SELECT id, alias, xp, created_at FROM profiles WHERE alias = ? AND recovery_code_hash = ?')
+  const profile = await env.DB.prepare('SELECT id, alias, xp, avatar_index, created_at FROM profiles WHERE alias = ? AND recovery_code_hash = ?')
     .bind(alias, await hash(recoveryCode)).first<Profile>()
   if (!profile) return json({ error: 'We could not find that learning profile.' }, { status: 404 })
   const sessionToken = generateToken()
@@ -95,6 +95,17 @@ async function replaceRecoveryCode(request: Request, env: Env) {
   await env.DB.prepare('UPDATE profiles SET recovery_code_hash = ?, updated_at = ? WHERE id = ?')
     .bind(await hash(recoveryCode), new Date().toISOString(), profile.id).run()
   return json({ recoveryCode })
+}
+
+async function updateAvatar(request: Request, env: Env) {
+  const profile = await authorize(request, env)
+  const body = await readBody(request)
+  const avatarIndex = typeof body?.avatarIndex === 'number' && Number.isInteger(body.avatarIndex) && body.avatarIndex >= 0 && body.avatarIndex < 20 ? body.avatarIndex : null
+  if (!profile) return json({ error: 'Your learning session has expired.' }, { status: 401 })
+  if (avatarIndex === null) return badRequest('Choose a valid avatar.')
+  await env.DB.prepare('UPDATE profiles SET avatar_index = ?, updated_at = ? WHERE id = ?').bind(avatarIndex, new Date().toISOString(), profile.id).run()
+  const updated = await env.DB.prepare('SELECT id, alias, xp, avatar_index, created_at FROM profiles WHERE id = ?').bind(profile.id).first<Profile>()
+  return json({ profile: updated ? publicProfile(updated) : null })
 }
 
 async function getProgress(request: Request, env: Env) {
@@ -123,7 +134,7 @@ async function updateProgress(request: Request, env: Env) {
     env.DB.prepare('UPDATE profiles SET xp = (SELECT COALESCE(SUM(xp_earned), 0) FROM lesson_progress WHERE profile_id = ?), updated_at = ? WHERE id = ?')
       .bind(profile.id, now, profile.id),
   ])
-  const updated = await env.DB.prepare('SELECT id, alias, xp, created_at FROM profiles WHERE id = ?').bind(profile.id).first<Profile>()
+  const updated = await env.DB.prepare('SELECT id, alias, xp, avatar_index, created_at FROM profiles WHERE id = ?').bind(profile.id).first<Profile>()
   return json({ profile: updated ? publicProfile(updated) : null })
 }
 
@@ -133,6 +144,7 @@ export default {
     if (url.pathname === '/api/profiles' && request.method === 'POST') return createProfile(request, env)
     if (url.pathname === '/api/profiles/restore' && request.method === 'POST') return restoreProfile(request, env)
     if (url.pathname === '/api/profiles/recovery' && request.method === 'POST') return replaceRecoveryCode(request, env)
+    if (url.pathname === '/api/profiles/avatar' && request.method === 'PUT') return updateAvatar(request, env)
     if (url.pathname === '/api/progress' && request.method === 'GET') return getProgress(request, env)
     if (url.pathname === '/api/progress' && request.method === 'PUT') return updateProgress(request, env)
     return env.ASSETS.fetch(request)

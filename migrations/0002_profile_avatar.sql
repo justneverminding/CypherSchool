@@ -1,0 +1,1 @@
+ALTER TABLE profiles ADD COLUMN avatar_index INTEGER NOT NULL DEFAULT 0 CHECK (avatar_index BETWEEN 0 AND 19);

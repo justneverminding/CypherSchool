@@ -15,12 +15,13 @@ type LearnerProfile = {
   id: string
   alias: string
   xp: number
+  avatarIndex?: number
   createdAt: string
   sessionToken: string
 }
 
 const profileStorageKey = 'cypherschool.profile'
-const builtLessonIds = ['01-case-for-privacy', '02-what-your-money-reveals', '03-tools-of-privacy', '04-prove-without-revealing', '05-zcash-private-money', '06-arcium-private-computation']
+const builtLessonIds = ['01-case-for-privacy', '02-what-your-money-reveals', '03-tools-of-privacy', '04-prove-without-revealing', '05-zcash-private-money', '06-arcium-private-computation', '07-stealf']
 
 const lessons: Lesson[] = [
   {
@@ -296,6 +297,28 @@ function App() {
     setIsDashboardOpen(false)
   }
 
+  async function selectAvatar(avatarIndex: number) {
+    if (!profile) return
+    const response = await fetch('/api/profiles/avatar', { method: 'PUT', headers: { 'content-type': 'application/json', 'x-cypherschool-profile': profile.id, 'x-cypherschool-session': profile.sessionToken }, body: JSON.stringify({ avatarIndex }) })
+    const result = await response.json() as { profile?: Omit<LearnerProfile, 'sessionToken'> }
+    if (!response.ok || !result.profile) return
+    const nextProfile = { ...result.profile, sessionToken: profile.sessionToken }
+    window.localStorage.setItem(profileStorageKey, JSON.stringify(nextProfile))
+    setProfile(nextProfile)
+  }
+
+  function saveCompletionCard() {
+    const link = document.createElement('a')
+    link.href = '/cypherschool-course-complete.png'
+    link.download = 'cypherschool-course-complete.png'
+    link.click()
+  }
+
+  function shareCompletion() {
+    const text = `I completed the Financial Privacy Course at CypherSchool. Take your path and learn financial privacy one short lesson at a time.`
+    window.open(`https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.origin)}`, '_blank', 'noopener,noreferrer')
+  }
+
   async function replaceRecoveryCode() {
     if (!profile) return
     setIsReplacingRecoveryCode(true)
@@ -321,7 +344,7 @@ function App() {
   function goToNextPath(nextLessonId: string) {
     setSelectedAnswer('')
     setManifestoStep(0)
-    if (nextLessonId === '02-what-your-money-reveals' || nextLessonId === '03-tools-of-privacy' || nextLessonId === '04-prove-without-revealing' || nextLessonId === '05-zcash-private-money' || nextLessonId === '06-arcium-private-computation') {
+    if (nextLessonId === '02-what-your-money-reveals' || nextLessonId === '03-tools-of-privacy' || nextLessonId === '04-prove-without-revealing' || nextLessonId === '05-zcash-private-money' || nextLessonId === '06-arcium-private-computation' || nextLessonId === '07-stealf') {
       setActiveLessonId(nextLessonId)
       return
     }
@@ -329,8 +352,8 @@ function App() {
     window.setTimeout(() => document.querySelector('#curriculum')?.scrollIntoView({ behavior: 'smooth' }), 0)
   }
 
-  async function completeLesson(lessonId: '01-case-for-privacy' | '02-what-your-money-reveals' | '03-tools-of-privacy' | '04-prove-without-revealing' | '05-zcash-private-money' | '06-arcium-private-computation') {
-    const correctAnswer = lessonId === '01-case-for-privacy' ? 'choice' : lessonId === '02-what-your-money-reveals' ? 'choice-two' : lessonId === '03-tools-of-privacy' ? 'choice-three' : lessonId === '04-prove-without-revealing' ? 'choice-four' : lessonId === '05-zcash-private-money' ? 'choice-five' : 'choice-six'
+  async function completeLesson(lessonId: '01-case-for-privacy' | '02-what-your-money-reveals' | '03-tools-of-privacy' | '04-prove-without-revealing' | '05-zcash-private-money' | '06-arcium-private-computation' | '07-stealf') {
+    const correctAnswer = lessonId === '01-case-for-privacy' ? 'choice' : lessonId === '02-what-your-money-reveals' ? 'choice-two' : lessonId === '03-tools-of-privacy' ? 'choice-three' : lessonId === '04-prove-without-revealing' ? 'choice-four' : lessonId === '05-zcash-private-money' ? 'choice-five' : lessonId === '06-arcium-private-computation' ? 'choice-six' : 'choice-seven'
     if (!profile || selectedAnswer !== correctAnswer) return
     setIsSavingLesson(true)
     setLessonError('')
@@ -364,6 +387,7 @@ function App() {
 
   const completedChapters = completedLessonIds.length
   const chaptersRemaining = lessons.length - completedChapters
+  const isCourseComplete = completedChapters === lessons.length
   const nextLesson = lessons.find((lesson) => lesson.id === nextBuiltLessonId())
   const continuePathLabel = nextLesson ? `CONTINUE: ${nextLesson.number} — ${nextLesson.title.toUpperCase()}` : 'VIEW NEXT PATH'
 
@@ -381,11 +405,13 @@ function App() {
           <p className="eyebrow"><span />YOUR LEARNING SPACE</p>
           <h1>Learn at<br />your <em>own pace.</em></h1>
           <p>Each chapter gives you one clear idea, a fictional scenario, and a short check before you move forward.</p>
-          <button className="dashboard-profile" type="button" onClick={() => setIsProfileOpen((open) => !open)} aria-expanded={isProfileOpen} aria-controls="dashboard-profile"><span>{profile?.alias.slice(0, 1).toUpperCase()}</span><div><small>LEARNING AS</small><strong>{profile?.alias}</strong></div><b>{profile?.xp ?? 0} XP</b></button>
+          <button className="dashboard-profile" type="button" onClick={() => setIsProfileOpen((open) => !open)} aria-expanded={isProfileOpen} aria-controls="dashboard-profile"><span className="selected-avatar" style={{ backgroundImage: 'url(/cypherschool-pfps.png)', backgroundSize: '500% 400%', backgroundPosition: `${((profile?.avatarIndex ?? 0) % 5) * 25}% ${Math.floor((profile?.avatarIndex ?? 0) / 5) * 33.333}%` }} /><div><small>LEARNING AS</small><strong>{profile?.alias}</strong></div><b>{profile?.xp ?? 0} XP</b></button>
           {isProfileOpen && <section className="dashboard-profile-details" id="dashboard-profile" aria-label="Your learning profile">
             <div className="profile-stats"><div><b>{profile?.xp ?? 0}</b><span>TOTAL XP</span></div><div><b>{chaptersRemaining}</b><span>CHAPTERS LEFT</span></div></div>
             <div className="medal-header"><span>CHAPTER MEDALS</span><span>{completedChapters} / {lessons.length}</span></div>
             <div className="medal-grid">{lessons.map((lesson) => { const earned = completedLessonIds.includes(lesson.id); return <div className={earned ? 'medal earned' : 'medal'} key={lesson.number}><span>{earned ? '✦' : lesson.number}</span><small>{earned ? 'EARNED' : 'LOCKED'}</small></div> })}</div>
+            <div className="avatar-picker"><p>CHOOSE YOUR COLLECTIBLE PFP</p><div>{Array.from({ length: 20 }, (_, avatarIndex) => <button type="button" aria-label={`Choose avatar ${avatarIndex + 1}`} className={(profile?.avatarIndex ?? 0) === avatarIndex ? 'selected' : ''} key={avatarIndex} onClick={() => selectAvatar(avatarIndex)} style={{ backgroundImage: 'url(/cypherschool-pfps.png)', backgroundSize: '500% 400%', backgroundPosition: `${(avatarIndex % 5) * 25}% ${Math.floor(avatarIndex / 5) * 33.333}%` }} />)}</div></div>
+            {isCourseComplete && <div className="gold-medal"><span>✦</span><div><b>GOLD COURSE MEDAL</b><small>ALL 7 CHAPTERS COMPLETE</small></div></div>}
             <div className="recovery-replace"><p>RECOVERY CODE</p>{replacementRecoveryCode ? <><strong>{replacementRecoveryCode}</strong><small>Save this new code now. Your previous recovery code no longer works.</small></> : <><small>Need a replacement? Generate a new code for restoring this profile on another device.</small><button type="button" onClick={replaceRecoveryCode} disabled={isReplacingRecoveryCode}>{isReplacingRecoveryCode ? 'GENERATING…' : 'GENERATE NEW CODE'}</button></>}{recoveryReplacementError && <span className="alias-error">{recoveryReplacementError}</span>}</div>
           </section>}
           <button className="primary-button" type="button" disabled={!nextLesson} onClick={() => nextLesson && beginLesson(nextLesson.id)}>{nextLesson ? `START ${nextLesson.number}` : 'PATH COMPLETE'} <span>→</span></button>
@@ -394,13 +420,17 @@ function App() {
           <div className="dashboard-course-head"><span>YOUR LEARNING PATH</span><span>{completedChapters} / 7 COMPLETE</span></div>
           <div className="lesson-grid">{lessons.map((lesson) => {
             const complete = completedLessonIds.includes(lesson.id)
-            const available = builtLessonIds.includes(lesson.id) && (lesson.id === '01-case-for-privacy' || (lesson.id === '02-what-your-money-reveals' && isLessonComplete) || (lesson.id === '03-tools-of-privacy' && completedLessonIds.includes('02-what-your-money-reveals')) || (lesson.id === '04-prove-without-revealing' && completedLessonIds.includes('03-tools-of-privacy')) || (lesson.id === '05-zcash-private-money' && completedLessonIds.includes('04-prove-without-revealing')) || (lesson.id === '06-arcium-private-computation' && completedLessonIds.includes('05-zcash-private-money')))
+            const available = builtLessonIds.includes(lesson.id) && (lesson.id === '01-case-for-privacy' || (lesson.id === '02-what-your-money-reveals' && isLessonComplete) || (lesson.id === '03-tools-of-privacy' && completedLessonIds.includes('02-what-your-money-reveals')) || (lesson.id === '04-prove-without-revealing' && completedLessonIds.includes('03-tools-of-privacy')) || (lesson.id === '05-zcash-private-money' && completedLessonIds.includes('04-prove-without-revealing')) || (lesson.id === '06-arcium-private-computation' && completedLessonIds.includes('05-zcash-private-money')) || (lesson.id === '07-stealf' && completedLessonIds.includes('06-arcium-private-computation')))
             return <article className={`lesson-card ${available ? 'ready' : 'locked'}`} key={lesson.id} role={available ? 'button' : undefined} tabIndex={available ? 0 : undefined} onClick={() => available && beginLesson(lesson.id)} onKeyDown={(event) => { if (available && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); beginLesson(lesson.id) } }}>
               <div className="lesson-meta"><span>CHAPTER {lesson.number}</span><span className="lesson-mark">{lesson.id === '05-zcash-private-money' ? <ZcashMark /> : lesson.mark}</span></div>
               <h3>{lesson.title}</h3><p>{lesson.description}</p>
               <span className="lesson-action">{complete ? 'REVISIT CHAPTER' : available ? 'BEGIN CHAPTER' : 'UNLOCKS NEXT'} <span aria-hidden="true">→</span></span>
             </article>
           })}</div>
+          {isCourseComplete && <section className="course-complete-card" aria-label="Course complete">
+            <img src="/cypherschool-course-complete.png" alt="CypherSchool Financial Privacy Course complete Gold 07 medal" />
+            <div><p className="eyebrow"><span />COURSE COMPLETE</p><h2>You completed<br /><em>CypherSchool.</em></h2><p>Seven chapters, one clearer view of financial privacy. Share your completion and invite someone to take their path.</p><div className="completion-actions"><button className="primary-button" type="button" onClick={shareCompletion}>SHARE ON X <span>↗</span></button><button className="path-home-button save-card-button" type="button" onClick={saveCompletionCard}>SAVE COMPLETION CARD</button></div></div>
+          </section>}
         </section>
       </section>
     </main>
@@ -452,6 +482,45 @@ function App() {
         </section>
       </main>
     )
+  }
+
+  if (activeLessonId === '07-stealf') {
+    const isComplete = completedLessonIds.includes('07-stealf')
+    const pages = [
+      { eyebrow: 'STEALF', title: <>Privacy needs<br />a <em>real choice.</em></>, body: 'Stealf is a stablecoin-native neobank on Solana designed around a simple idea: people should be able to choose the level of financial privacy that fits the moment.', note: 'The course ideas now meet a practical product design: a public wallet for ordinary transparency and a private wallet for confidential activity.' },
+      { eyebrow: 'THE PUBLIC WALLET', title: <>Use the public rail<br />when <em>visibility helps.</em></>, body: 'The public wallet works like a regular on-chain wallet. Its balance and transactions are visible, making it suitable for activity where transparency is expected. Payment cards require KYC.', note: 'Privacy is not a demand that every action be hidden. It is the ability to make an intentional choice.' },
+      { eyebrow: 'THE PRIVATE WALLET', title: <>Keep sensitive activity<br /><em>confidential.</em></>, body: 'Stealf’s private wallet uses Arcium’s MPC network to keep balances, amounts, senders, and receivers encrypted. It is designed to give users a private option for situations where public financial exposure is not appropriate.', note: 'The goal is a usable financial experience where confidentiality is available by design—not an afterthought.' },
+    ]
+    const page = pages[manifestoStep]
+    return <main className="lesson-screen stealf-screen">
+      <nav className="lesson-nav shell"><button className="lesson-back" type="button" onClick={() => setActiveLessonId(null)}>← BACK TO PATH</button><span>CHAPTER 07 / 07</span><span>{profile?.xp ?? 0} XP</span></nav>
+      <section className="manifesto-shell shell">
+        <div className="manifesto-rail">{[0, 1, 2, 3].map((step) => <span className={step <= manifestoStep ? 'active' : ''} key={step} />)}</div>
+        {manifestoStep < pages.length && page ? <article className="manifesto-page">
+          <div><p className="eyebrow"><span />{page.eyebrow}</p><p className="lesson-kicker">// 07.0{manifestoStep + 1}</p><h1>{page.title}</h1></div>
+          <div className="manifesto-reading">
+            {manifestoStep === 0 && <div className="stealf-symbol"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M16 47C16 27.7 31.7 12 51 12h37v15H51c-11 0-20 9-20 20H16Z" /><path d="M84 53c0 19.3-15.7 35-35 35H12V73h37c11 0 20-9 20-20h15Z" /></svg><span>STEALF</span></div>}
+            {manifestoStep === 1 && <div className="wallet-rails"><span>PUBLIC WALLET</span><b>VISIBLE BALANCE · VISIBLE TRANSACTIONS</b></div>}
+            {manifestoStep === 2 && <div className="wallet-rails private"><span>PRIVATE WALLET</span><b>ENCRYPTED BALANCE · ENCRYPTED TRANSACTIONS</b></div>}
+            <p>{page.body}</p><aside>{page.note}</aside>
+            {manifestoStep > 0 && <button className="review-notes" type="button" onClick={() => setManifestoStep((step) => step - 1)}>← PREVIOUS NOTE</button>}
+            <button className="primary-button" type="button" onClick={() => setManifestoStep((step) => step + 1)}>CONTINUE <span>→</span></button>
+          </div>
+        </article> : <article className="manifesto-page manifesto-check">
+          <div><p className="eyebrow"><span />FINAL CHECK</p><p className="lesson-kicker">// 07.04</p><h1>What does a<br /><em>privacy choice</em> make possible?</h1></div>
+          <div className="manifesto-reading">{isComplete ? <>
+            <button className="review-notes" type="button" onClick={() => setManifestoStep(2)}>← REVIEW PREVIOUS NOTES</button>
+            <div className="answer-options recorded-answer"><button className="selected" type="button" disabled>Using public or private financial activity according to the situation.</button><button type="button" disabled>Making all payments permanently invisible.</button><button type="button" disabled>Removing the need for secure infrastructure.</button></div>
+            <aside>Course complete. +100 XP and Medal 07 are synced to your learning profile.</aside><div className="completion-actions"><button className="primary-button" type="button" onClick={() => setActiveLessonId(null)}>VIEW YOUR DASHBOARD <span>→</span></button></div>
+          </> : <>
+            <button className="review-notes" type="button" onClick={() => setManifestoStep(2)}>← REVIEW PREVIOUS NOTES</button>
+            <div className="answer-options"><button className={selectedAnswer === 'choice-seven' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('choice-seven')}>Using public or private financial activity according to the situation.</button><button className={selectedAnswer === 'wrong-thirteen' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('wrong-thirteen')}>Making all payments permanently invisible.</button><button className={selectedAnswer === 'wrong-fourteen' ? 'selected' : ''} type="button" onClick={() => setSelectedAnswer('wrong-fourteen')}>Removing the need for secure infrastructure.</button></div>
+            {selectedAnswer && selectedAnswer !== 'choice-seven' && <p className="answer-note">Not quite. Privacy is a practical choice about what to reveal; it does not remove the need for security or make everything invisible.</p>}{lessonError && <p className="alias-error" role="alert">{lessonError}</p>}
+            <button className="primary-button" type="button" disabled={selectedAnswer !== 'choice-seven' || isSavingLesson} onClick={() => completeLesson('07-stealf')}>{isSavingLesson ? 'SAVING…' : 'COMPLETE COURSE'} <span>→</span></button>
+          </>}</div>
+        </article>}
+      </section>
+    </main>
   }
 
   if (activeLessonId === '06-arcium-private-computation') {
@@ -658,7 +727,7 @@ function App() {
           <div className="path-panel-head"><span>YOUR LEARNING PATH</span><span>{completedChapters} / 7 COMPLETE</span></div>
           <div className="path-list">{lessons.map((lesson) => {
             const complete = completedLessonIds.includes(lesson.id)
-            const available = builtLessonIds.includes(lesson.id) && (lesson.id === '01-case-for-privacy' || (lesson.id === '02-what-your-money-reveals' && isLessonComplete) || (lesson.id === '03-tools-of-privacy' && completedLessonIds.includes('02-what-your-money-reveals')) || (lesson.id === '04-prove-without-revealing' && completedLessonIds.includes('03-tools-of-privacy')) || (lesson.id === '05-zcash-private-money' && completedLessonIds.includes('04-prove-without-revealing')) || (lesson.id === '06-arcium-private-computation' && completedLessonIds.includes('05-zcash-private-money')))
+            const available = builtLessonIds.includes(lesson.id) && (lesson.id === '01-case-for-privacy' || (lesson.id === '02-what-your-money-reveals' && isLessonComplete) || (lesson.id === '03-tools-of-privacy' && completedLessonIds.includes('02-what-your-money-reveals')) || (lesson.id === '04-prove-without-revealing' && completedLessonIds.includes('03-tools-of-privacy')) || (lesson.id === '05-zcash-private-money' && completedLessonIds.includes('04-prove-without-revealing')) || (lesson.id === '06-arcium-private-computation' && completedLessonIds.includes('05-zcash-private-money')) || (lesson.id === '07-stealf' && completedLessonIds.includes('06-arcium-private-computation')))
             const next = nextLesson?.id === lesson.id
             return <button className={`path-row ${next ? 'next' : ''} ${complete ? 'complete' : ''}`} type="button" key={lesson.id} disabled={!available} onClick={() => available && beginLesson(lesson.id)}><b>{lesson.number}</b><span>{lesson.title}</span><small>{complete ? 'COMPLETE' : next ? 'NEXT' : available ? 'READY' : 'LOCKED'}</small><i aria-hidden="true">{available ? '›' : '×'}</i></button>
           })}</div>
