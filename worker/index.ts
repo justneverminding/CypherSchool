@@ -12,6 +12,15 @@ const json = (body: unknown, init: ResponseInit = {}) => new Response(JSON.strin
 
 const badRequest = (message: string) => json({ error: message }, { status: 400 })
 
+// The document is the only asset that must always be current. Vite fingerprints
+// JavaScript and CSS filenames, so those files can remain safely cached while a
+// returning learner receives the newest app shell on their next visit.
+function freshDocument(response: Response) {
+  const headers = new Headers(response.headers)
+  headers.set('Cache-Control', 'no-cache, max-age=0, must-revalidate')
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers })
+}
+
 function normalizeAlias(value: unknown) {
   if (typeof value !== 'string') return null
   const alias = value.trim().replace(/\s+/g, ' ')
@@ -147,6 +156,8 @@ export default {
     if (url.pathname === '/api/profiles/avatar' && request.method === 'PUT') return updateAvatar(request, env)
     if (url.pathname === '/api/progress' && request.method === 'GET') return getProgress(request, env)
     if (url.pathname === '/api/progress' && request.method === 'PUT') return updateProgress(request, env)
-    return env.ASSETS.fetch(request)
+    const response = await env.ASSETS.fetch(request)
+    const acceptsHtml = request.headers.get('accept')?.includes('text/html')
+    return acceptsHtml ? freshDocument(response) : response
   },
 } satisfies ExportedHandler<Env>
