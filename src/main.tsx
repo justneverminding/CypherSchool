@@ -114,6 +114,7 @@ function App() {
   const [isReplacingRecoveryCode, setIsReplacingRecoveryCode] = useState(false)
   const [recoveryReplacementError, setRecoveryReplacementError] = useState('')
   const [isProgressLoaded, setIsProgressLoaded] = useState(false)
+  const [isCourseCertificateOpen, setIsCourseCertificateOpen] = useState(false)
   const progressRequestId = useRef(0)
 
   useEffect(() => {
@@ -380,6 +381,10 @@ function App() {
       setProfile(nextProfile)
       if (lessonId === '01-case-for-privacy') setIsLessonComplete(true)
       setCompletedLessonIds((lessonIds) => lessonIds.includes(lessonId) ? lessonIds : [...lessonIds, lessonId])
+      if (lessonId === '07-stealf') {
+        setIsCourseCertificateOpen(true)
+        setActiveLessonId(null)
+      }
     } catch {
       setLessonError('The learning service is unavailable. Please try again shortly.')
     } finally {
@@ -435,6 +440,18 @@ function App() {
           </section>}
         </section>
       </section>
+      {isCourseCertificateOpen && <section className="certificate-overlay" role="dialog" aria-modal="true" aria-labelledby="certificate-title">
+        <div className="certificate-dialog">
+          <button className="certificate-close" type="button" onClick={() => setIsCourseCertificateOpen(false)} aria-label="Close completion certificate">×</button>
+          <p className="eyebrow"><span />COURSE COMPLETE</p>
+          <img src="/cypherschool-course-complete.png" alt="CypherSchool Financial Privacy Course complete gold medal" />
+          <p className="certificate-awarded">AWARDED TO {profile?.alias?.toUpperCase()}</p>
+          <h2 id="certificate-title">Your certificate<br /><em>is unlocked.</em></h2>
+          <p className="certificate-copy">You completed all seven chapters of the CypherSchool Financial Privacy Course and earned the Gold 07 Medal.</p>
+          <div className="completion-actions certificate-actions"><button className="primary-button" type="button" onClick={shareCompletion}>SHARE ON X <span>↗</span></button><button className="path-home-button save-card-button" type="button" onClick={saveCompletionCard}>SAVE CERTIFICATE</button></div>
+          <button className="certificate-dashboard" type="button" onClick={() => { setIsCourseCertificateOpen(false); setActiveLessonId(null) }}>VIEW YOUR DASHBOARD <span>→</span></button>
+        </div>
+      </section>}
     </main>
   }
 
