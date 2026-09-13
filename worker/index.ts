@@ -4,6 +4,7 @@ export interface Env {
 }
 
 type Profile = { id: string; alias: string; xp: number; avatar_index: number; created_at: string }
+type ActivityEvent = { eventType: 'joined' | 'completed'; publicLabel: string; createdAt: string }
 
 const json = (body: unknown, init: ResponseInit = {}) => new Response(JSON.stringify(body), {
   ...init,
@@ -19,6 +20,14 @@ function freshDocument(response: Response) {
   const headers = new Headers(response.headers)
   headers.set('Cache-Control', 'no-cache, max-age=0, must-revalidate')
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers })
+}
+
+function completionSharePage(origin: string) {
+  const url = `${origin}/course-complete`
+  const image = `${origin}/cypherschool-course-complete.png`
+  const title = 'CypherSchool — Financial Privacy Course Complete'
+  const description = 'Seven chapters completed. Take your path through financial privacy.'
+  return new Response(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><meta name="description" content="${description}"><link rel="canonical" href="${url}"><meta property="og:type" content="website"><meta property="og:site_name" content="CypherSchool"><meta property="og:url" content="${url}"><meta property="og:title" content="${title}"><meta property="og:description" content="${description}"><meta property="og:image" content="${image}"><meta property="og:image:secure_url" content="${image}"><meta property="og:image:type" content="image/png"><meta property="og:image:width" content="1672"><meta property="og:image:height" content="941"><meta property="og:image:alt" content="CypherSchool Financial Privacy Course Complete — Gold 07 Medal"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${title}"><meta name="twitter:description" content="${description}"><meta name="twitter:image" content="${image}"><meta name="twitter:image:alt" content="CypherSchool Financial Privacy Course Complete — Gold 07 Medal"><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0a0c0c;color:#f4f0df;font-family:Arial,sans-serif}main{max-width:780px;padding:32px;text-align:center}img{width:100%;border:1px solid #d2a832}a{display:inline-block;margin-top:24px;padding:14px 18px;background:#9dee91;color:#101410;text-decoration:none;font:600 12px monospace;letter-spacing:.08em}</style></head><body><main><img src="${image}" alt="CypherSchool Financial Privacy Course Complete Gold 07 Medal"><p>${description}</p><a href="${origin}/">ENTER CYPHERSCHOOL</a></main></body></html>`, { headers: { 'content-type': 'text/html; charset=UTF-8', 'Cache-Control': 'no-cache, max-age=0, must-revalidate' } })
 }
 
 function normalizeAlias(value: unknown) {
@@ -41,6 +50,22 @@ function generateToken() {
   const bytes = new Uint8Array(32)
   crypto.getRandomValues(bytes)
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+function anonymousActivityLabel() {
+  const bytes = new Uint32Array(1)
+  crypto.getRandomValues(bytes)
+  return `anon_${String((bytes[0] % 900) + 100)}`
+}
+
+async function recordActivity(env: Env, eventType: ActivityEvent['eventType']) {
+  try {
+    await env.DB.prepare('INSERT INTO activity_events (id, event_type, public_label, created_at) VALUES (?, ?, ?, ?)')
+      .bind(crypto.randomUUID(), eventType, anonymousActivityLabel(), new Date().toISOString()).run()
+    await env.DB.prepare('DELETE FROM activity_events WHERE id NOT IN (SELECT id FROM activity_events ORDER BY created_at DESC LIMIT 80)').run()
+  } catch {
+    // Activity is optional: an unavailable feed must never block learning progress.
+  }
 }
 
 async function hash(value: string) {
@@ -80,6 +105,7 @@ async function createProfile(request: Request, env: Env) {
   } catch {
     return json({ error: 'That alias is already in use. Try another one.' }, { status: 409 })
   }
+  await recordActivity(env, 'joined')
   return json({ profile: { id, alias, xp: 0, avatarIndex: 0, createdAt: now }, recoveryCode, sessionToken }, { status: 201 })
 }
 
@@ -143,17 +169,29 @@ async function updateProgress(request: Request, env: Env) {
     env.DB.prepare('UPDATE profiles SET xp = (SELECT COALESCE(SUM(xp_earned), 0) FROM lesson_progress WHERE profile_id = ?), updated_at = ? WHERE id = ?')
       .bind(profile.id, now, profile.id),
   ])
+  if (lessonId === '07-stealf' && completed === 1) await recordActivity(env, 'completed')
   const updated = await env.DB.prepare('SELECT id, alias, xp, avatar_index, created_at FROM profiles WHERE id = ?').bind(profile.id).first<Profile>()
   return json({ profile: updated ? publicProfile(updated) : null })
+}
+
+async function getActivity(env: Env) {
+  try {
+    const { results } = await env.DB.prepare('SELECT event_type AS eventType, public_label AS publicLabel, created_at AS createdAt FROM activity_events ORDER BY created_at DESC LIMIT 7').all<ActivityEvent>()
+    return json({ events: results }, { headers: { 'Cache-Control': 'no-store' } })
+  } catch {
+    return json({ events: [] }, { headers: { 'Cache-Control': 'no-store' } })
+  }
 }
 
 export default {
   async fetch(request, env): Promise<Response> {
     const url = new URL(request.url)
+    if (url.pathname === '/course-complete') return completionSharePage(url.origin)
     if (url.pathname === '/api/profiles' && request.method === 'POST') return createProfile(request, env)
     if (url.pathname === '/api/profiles/restore' && request.method === 'POST') return restoreProfile(request, env)
     if (url.pathname === '/api/profiles/recovery' && request.method === 'POST') return replaceRecoveryCode(request, env)
     if (url.pathname === '/api/profiles/avatar' && request.method === 'PUT') return updateAvatar(request, env)
+    if (url.pathname === '/api/activity' && request.method === 'GET') return getActivity(env)
     if (url.pathname === '/api/progress' && request.method === 'GET') return getProgress(request, env)
     if (url.pathname === '/api/progress' && request.method === 'PUT') return updateProgress(request, env)
     const response = await env.ASSETS.fetch(request)

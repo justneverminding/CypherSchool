@@ -20,8 +20,22 @@ type LearnerProfile = {
   sessionToken: string
 }
 
+type AnonymousActivity = {
+  eventType: 'joined' | 'completed'
+  publicLabel: string
+  createdAt: string
+}
+
 const profileStorageKey = 'cypherschool.profile'
 const builtLessonIds = ['01-case-for-privacy', '02-what-your-money-reveals', '03-tools-of-privacy', '04-prove-without-revealing', '05-zcash-private-money', '06-arcium-private-computation', '07-stealf']
+
+function activityTime(createdAt: string) {
+  const seconds = Math.max(0, Math.floor((Date.now() - new Date(createdAt).getTime()) / 1000))
+  if (seconds < 60) return 'JUST NOW'
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}M AGO`
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}H AGO`
+  return 'EARLIER'
+}
 
 const lessons: Lesson[] = [
   {
@@ -115,6 +129,7 @@ function App() {
   const [recoveryReplacementError, setRecoveryReplacementError] = useState('')
   const [isProgressLoaded, setIsProgressLoaded] = useState(false)
   const [isCourseCertificateOpen, setIsCourseCertificateOpen] = useState(false)
+  const [activity, setActivity] = useState<AnonymousActivity[]>([])
   const progressRequestId = useRef(0)
 
   useEffect(() => {
@@ -159,6 +174,19 @@ function App() {
         if (requestId === progressRequestId.current) setIsProgressLoaded(true)
       })
   }, [profile?.id, profile?.sessionToken, isProfileOpen])
+
+  useEffect(() => {
+    let isCurrent = true
+    const loadActivity = () => {
+      fetch('/api/activity')
+        .then(async (response) => response.ok ? response.json() as Promise<{ events?: AnonymousActivity[] }> : { events: [] })
+        .then((result) => { if (isCurrent) setActivity(result.events ?? []) })
+        .catch(() => undefined)
+    }
+    loadActivity()
+    const interval = window.setInterval(loadActivity, 20_000)
+    return () => { isCurrent = false; window.clearInterval(interval) }
+  }, [])
 
   function openAliasDialog() {
     setAlias(profile?.alias ?? '')
@@ -319,7 +347,7 @@ function App() {
 
   function shareCompletion() {
     const text = `I completed the Financial Privacy Course at CypherSchool. Take your path and learn financial privacy one short lesson at a time.`
-    window.open(`https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.origin)}`, '_blank', 'noopener,noreferrer')
+    window.open(`https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(`${window.location.origin}/course-complete`)}`, '_blank', 'noopener,noreferrer')
   }
 
   async function replaceRecoveryCode() {
@@ -785,6 +813,14 @@ function App() {
           <h2>Understand the problem<br />before choosing the tools.</h2>
         </div>
         <p>CypherSchool uses fictional scenarios to build privacy literacy. The final chapter introduces Stealf as one practical application of private financial infrastructure.</p>
+      </section>
+
+      <section className="activity-feed shell" aria-live="polite" aria-label="Anonymous learning activity">
+        <div className="activity-feed-head"><p className="eyebrow"><span />LIVE LEARNING SIGNAL</p><small>ANONYMOUS BY DESIGN</small></div>
+        <div className="activity-list">
+          {activity.length ? activity.map((event, index) => <article className="activity-event" key={`${event.createdAt}-${index}`}><span className="activity-pulse" /><strong>{event.publicLabel}</strong><p>{event.eventType === 'completed' ? 'just completed the Financial Privacy Course.' : 'just started a learning path.'}</p><time dateTime={event.createdAt}>{activityTime(event.createdAt)}</time></article>) : <p className="activity-empty">Waiting for the next anonymous learner to begin.</p>}
+        </div>
+        <p className="activity-privacy">A new random label is generated for each signal. It is never connected to an alias, profile, wallet, or recovery code.</p>
       </section>
 
       <footer className="footer shell">
