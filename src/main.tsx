@@ -108,7 +108,33 @@ function ZcashMark() {
   </svg>
 }
 
+function CertificateVerificationFallback({ certificateId }: { certificateId: string }) {
+  const [status, setStatus] = useState<'loading' | 'valid' | 'invalid'>('loading')
+  const [issuedAt, setIssuedAt] = useState('')
+
+  useEffect(() => {
+    let isCurrent = true
+    fetch(`/api/certificates/${encodeURIComponent(certificateId)}`)
+      .then(async (response) => response.ok ? response.json() as Promise<{ valid?: boolean; certificate?: { issuedAt?: string } }> : { valid: false })
+      .then((result) => {
+        if (!isCurrent) return
+        setIssuedAt(('certificate' in result ? result.certificate?.issuedAt : '') ?? '')
+        setStatus(result.valid ? 'valid' : 'invalid')
+      })
+      .catch(() => { if (isCurrent) setStatus('invalid') })
+    return () => { isCurrent = false }
+  }, [certificateId])
+
+  const issued = issuedAt ? new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric' }).format(new Date(issuedAt)) : ''
+  return <main className="verify-fallback"><section>
+    {status === 'loading' ? <><p className="eyebrow"><span />VERIFYING CERTIFICATE</p><h1>Checking your<br /><em>credential.</em></h1></> : status === 'valid' ? <><p className="eyebrow"><span />✓ VERIFIED CERTIFICATE</p><h1>Financial Privacy<br /><em>Course Complete.</em></h1><p>Gold 07 Medal · Issued {issued}</p><code>{certificateId}</code><small>This verification reveals no learner identity or progress data.</small></> : <><p className="eyebrow"><span />CERTIFICATE NOT FOUND</p><h1>We could not verify<br /><em>this certificate.</em></h1><p>Check the Certificate ID and try again.</p></>}
+    <a href="/">ENTER CYPHERSCHOOL →</a>
+  </section></main>
+}
+
 function App() {
+  const verificationPath = window.location.pathname.match(/^\/verify\/([^/]+)$/)
+  if (verificationPath) return <CertificateVerificationFallback certificateId={decodeURIComponent(verificationPath[1]).toUpperCase()} />
   const [profile, setProfile] = useState<LearnerProfile | null>(null)
   const [theme, setTheme] = useState<'dark' | 'light'>(() => localStorage.getItem('cypherschool.theme') === 'light' ? 'light' : 'dark')
   const [isAliasDialogOpen, setIsAliasDialogOpen] = useState(false)
