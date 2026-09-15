@@ -5,6 +5,10 @@ export interface Env {
 
 type Profile = { id: string; alias: string; xp: number; avatar_index: number; created_at: string }
 type ActivityEvent = { eventType: 'joined' | 'completed'; publicLabel: string; createdAt: string }
+type Certificate = { certificateId: string; issuedAt: string }
+
+const courseLessonIds = ['01-case-for-privacy', '02-what-your-money-reveals', '03-tools-of-privacy', '04-prove-without-revealing', '05-zcash-private-money', '06-arcium-private-computation', '07-stealf'] as const
+const certificateAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 
 const json = (body: unknown, init: ResponseInit = {}) => new Response(JSON.stringify(body), {
   ...init,
@@ -52,6 +56,13 @@ function generateToken() {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
+function generateCertificateId() {
+  const bytes = new Uint8Array(20)
+  crypto.getRandomValues(bytes)
+  const groups = Array.from({ length: 4 }, (_, group) => Array.from(bytes.slice(group * 5, group * 5 + 5), (byte) => certificateAlphabet[byte % certificateAlphabet.length]).join(''))
+  return `CS-${groups.join('-')}`
+}
+
 function anonymousActivityLabel() {
   const bytes = new Uint32Array(1)
   crypto.getRandomValues(bytes)
@@ -71,6 +82,32 @@ async function recordActivity(env: Env, eventType: ActivityEvent['eventType']) {
 async function hash(value: string) {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+function certificateIdIsValid(value: string) {
+  return /^CS-(?:[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{5}-){3}[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{5}$/.test(value)
+}
+
+async function existingCertificate(profileId: string, env: Env): Promise<Certificate | null> {
+  const certificate = await env.DB.prepare('SELECT id AS certificateId, issued_at AS issuedAt FROM certificates WHERE profile_id = ?').bind(profileId).first<Certificate>()
+  return certificate ?? null
+}
+
+async function issueCertificateIfEligible(profileId: string, env: Env): Promise<Certificate | null> {
+  const existing = await existingCertificate(profileId, env)
+  if (existing) return existing
+  const { results } = await env.DB.prepare(`SELECT lesson_id FROM lesson_progress WHERE profile_id = ? AND completed = 1 AND lesson_id IN (${courseLessonIds.map(() => '?').join(', ')})`)
+    .bind(profileId, ...courseLessonIds).all<{ lesson_id: string }>()
+  if (results.length !== courseLessonIds.length) return null
+  const certificateId = generateCertificateId()
+  const issuedAt = new Date().toISOString()
+  try {
+    await env.DB.prepare('INSERT INTO certificates (id, certificate_hash, profile_id, issued_at) VALUES (?, ?, ?, ?)')
+      .bind(certificateId, await hash(certificateId), profileId, issuedAt).run()
+    return { certificateId, issuedAt }
+  } catch {
+    return existingCertificate(profileId, env)
+  }
 }
 
 function publicProfile(profile: Profile) {
@@ -155,11 +192,18 @@ async function updateProgress(request: Request, env: Env) {
   const profile = await authorize(request, env)
   if (!profile) return json({ error: 'Your learning session has expired.' }, { status: 401 })
   const body = await readBody(request)
-  const lessonId = typeof body?.lessonId === 'string' && /^[a-z0-9-]{1,40}$/i.test(body.lessonId) ? body.lessonId : null
+  const lessonId = typeof body?.lessonId === 'string' && courseLessonIds.includes(body.lessonId as typeof courseLessonIds[number]) ? body.lessonId as typeof courseLessonIds[number] : null
   const completed = body?.completed === true ? 1 : 0
-  const score = typeof body?.score === 'number' && Number.isInteger(body.score) && body.score >= 0 && body.score <= 100 ? body.score : null
-  const xpEarned = typeof body?.xpEarned === 'number' && Number.isInteger(body.xpEarned) && body.xpEarned >= 0 && body.xpEarned <= 500 ? body.xpEarned : null
-  if (!lessonId || xpEarned === null) return badRequest('Invalid lesson progress.')
+  const score = body?.score === 100 ? 100 : null
+  const xpEarned = body?.xpEarned === 100 ? 100 : null
+  if (!lessonId || completed !== 1 || score === null || xpEarned === null) return badRequest('Invalid lesson progress.')
+
+  const lessonIndex = courseLessonIds.indexOf(lessonId)
+  if (lessonIndex > 0) {
+    const previousLessonId = courseLessonIds[lessonIndex - 1]
+    const previous = await env.DB.prepare('SELECT completed FROM lesson_progress WHERE profile_id = ? AND lesson_id = ?').bind(profile.id, previousLessonId).first<{ completed: number }>()
+    if (!previous?.completed) return badRequest('Complete the previous chapter before continuing.')
+  }
 
   const now = new Date().toISOString()
   await env.DB.batch([
@@ -169,9 +213,34 @@ async function updateProgress(request: Request, env: Env) {
     env.DB.prepare('UPDATE profiles SET xp = (SELECT COALESCE(SUM(xp_earned), 0) FROM lesson_progress WHERE profile_id = ?), updated_at = ? WHERE id = ?')
       .bind(profile.id, now, profile.id),
   ])
-  if (lessonId === '07-stealf' && completed === 1) await recordActivity(env, 'completed')
+  const certificateBeforeCompletion = lessonId === '07-stealf' ? await existingCertificate(profile.id, env) : null
+  const certificate = lessonId === '07-stealf' ? await issueCertificateIfEligible(profile.id, env) : null
+  if (lessonId === '07-stealf' && certificate && !certificateBeforeCompletion) await recordActivity(env, 'completed')
   const updated = await env.DB.prepare('SELECT id, alias, xp, avatar_index, created_at FROM profiles WHERE id = ?').bind(profile.id).first<Profile>()
-  return json({ profile: updated ? publicProfile(updated) : null })
+  return json({ profile: updated ? publicProfile(updated) : null, certificate })
+}
+
+async function getMyCertificate(request: Request, env: Env) {
+  const profile = await authorize(request, env)
+  if (!profile) return json({ error: 'Your learning session has expired.' }, { status: 401 })
+  return json({ certificate: await issueCertificateIfEligible(profile.id, env) })
+}
+
+async function verifyCertificate(certificateId: string, env: Env) {
+  if (!certificateIdIsValid(certificateId)) return json({ valid: false }, { status: 404, headers: { 'Cache-Control': 'no-store' } })
+  const certificate = await env.DB.prepare('SELECT issued_at AS issuedAt FROM certificates WHERE certificate_hash = ?').bind(await hash(certificateId)).first<{ issuedAt: string }>()
+  if (!certificate) return json({ valid: false }, { status: 404, headers: { 'Cache-Control': 'no-store' } })
+  return json({ valid: true, certificate: { certificateId, issuedAt: certificate.issuedAt, course: 'Financial Privacy Course', medal: 'Gold 07 Medal' } }, { headers: { 'Cache-Control': 'no-store' } })
+}
+
+async function certificateVerificationPage(certificateId: string, origin: string, env: Env) {
+  const result = await verifyCertificate(certificateId, env)
+  const payload = await result.json() as { valid: boolean; certificate?: { issuedAt: string } }
+  const valid = payload.valid
+  const issued = payload.certificate ? new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric' }).format(new Date(payload.certificate.issuedAt)) : ''
+  const title = valid ? 'Verified CypherSchool Certificate' : 'Certificate not found'
+  const body = valid ? `<p class="signal">✓ VERIFIED CERTIFICATE</p><h1>Financial Privacy<br><em>Course Complete.</em></h1><p>Gold 07 Medal · Issued ${issued}</p><code>${certificateId}</code><small>This verification reveals no learner identity or progress data.</small>` : `<p class="signal">CERTIFICATE NOT FOUND</p><h1>We could not verify<br><em>this certificate.</em></h1><p>Check the certificate ID and try again.</p>`
+  return new Response(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} | CypherSchool</title><meta name="robots" content="noindex, nofollow"><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#090b0b;color:#f1f0e9;font-family:Arial,sans-serif}main{width:min(88vw,680px);padding:55px;border:1px solid #344039;background:radial-gradient(circle at 80% 0,#1e3621 0,transparent 38%),#0d100e}h1{margin:0 0 24px;font-size:clamp(42px,7vw,75px);line-height:.92;letter-spacing:-.06em}em{font-family:Georgia,serif;font-weight:400;color:#9cf58f}.signal,code,small{font:500 11px/1.6 monospace;letter-spacing:.08em}.signal{color:#9cf58f}code{display:block;margin:29px 0 18px;padding:14px;border:1px solid #445647;color:#dffadc}small{display:block;color:#8c998f}a{color:#9cf58f}</style></head><body><main>${body}<p><a href="${origin}/">ENTER CYPHERSCHOOL →</a></p></main></body></html>`, { status: valid ? 200 : 404, headers: { 'content-type': 'text/html; charset=UTF-8', 'Cache-Control': 'no-store' } })
 }
 
 async function getActivity(env: Env) {
@@ -194,6 +263,9 @@ export default {
     if (url.pathname === '/api/activity' && request.method === 'GET') return getActivity(env)
     if (url.pathname === '/api/progress' && request.method === 'GET') return getProgress(request, env)
     if (url.pathname === '/api/progress' && request.method === 'PUT') return updateProgress(request, env)
+    if (url.pathname === '/api/certificates/me' && request.method === 'GET') return getMyCertificate(request, env)
+    if (url.pathname.startsWith('/api/certificates/') && request.method === 'GET') return verifyCertificate(decodeURIComponent(url.pathname.slice('/api/certificates/'.length)).toUpperCase(), env)
+    if (url.pathname.startsWith('/verify/')) return certificateVerificationPage(decodeURIComponent(url.pathname.slice('/verify/'.length)).toUpperCase(), url.origin, env)
     const response = await env.ASSETS.fetch(request)
     const acceptsHtml = request.headers.get('accept')?.includes('text/html')
     return acceptsHtml ? freshDocument(response) : response

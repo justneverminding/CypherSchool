@@ -26,6 +26,11 @@ type AnonymousActivity = {
   createdAt: string
 }
 
+type CourseCertificate = {
+  certificateId: string
+  issuedAt: string
+}
+
 const profileStorageKey = 'cypherschool.profile'
 const builtLessonIds = ['01-case-for-privacy', '02-what-your-money-reveals', '03-tools-of-privacy', '04-prove-without-revealing', '05-zcash-private-money', '06-arcium-private-computation', '07-stealf']
 
@@ -130,6 +135,7 @@ function App() {
   const [recoveryReplacementError, setRecoveryReplacementError] = useState('')
   const [isProgressLoaded, setIsProgressLoaded] = useState(false)
   const [isCourseCertificateOpen, setIsCourseCertificateOpen] = useState(false)
+  const [certificate, setCertificate] = useState<CourseCertificate | null>(null)
   const [activity, setActivity] = useState<AnonymousActivity[]>([])
 
   useEffect(() => {
@@ -180,6 +186,19 @@ function App() {
         if (requestId === progressRequestId.current) setIsProgressLoaded(true)
       })
   }, [profile?.id, profile?.sessionToken, isProfileOpen])
+
+  useEffect(() => {
+    if (!profile || !completedLessonIds.includes('07-stealf')) {
+      setCertificate(null)
+      return
+    }
+    let isCurrent = true
+    fetch('/api/certificates/me', { headers: { 'x-cypherschool-profile': profile.id, 'x-cypherschool-session': profile.sessionToken } })
+      .then(async (response) => response.ok ? response.json() as Promise<{ certificate?: CourseCertificate | null }> : { certificate: null })
+      .then((result) => { if (isCurrent) setCertificate(result.certificate ?? null) })
+      .catch(() => undefined)
+    return () => { isCurrent = false }
+  }, [profile?.id, profile?.sessionToken, completedLessonIds.includes('07-stealf')])
 
   useEffect(() => {
     let isCurrent = true
@@ -353,7 +372,8 @@ function App() {
 
   function shareCompletion() {
     const text = `I completed the Financial Privacy Course at CypherSchool. Take your path and learn financial privacy one short lesson at a time.`
-    window.open(`https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(`${window.location.origin}/course-complete`)}`, '_blank', 'noopener,noreferrer')
+    const link = certificate ? `${window.location.origin}/verify/${certificate.certificateId}` : `${window.location.origin}/course-complete`
+    window.open(`https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(link)}`, '_blank', 'noopener,noreferrer')
   }
 
   async function replaceRecoveryCode() {
@@ -404,7 +424,7 @@ function App() {
         },
         body: JSON.stringify({ lessonId, completed: true, score: 100, xpEarned: 100 }),
       })
-      const result = await response.json() as { error?: string; profile?: Omit<LearnerProfile, 'sessionToken'> }
+      const result = await response.json() as { error?: string; profile?: Omit<LearnerProfile, 'sessionToken'>; certificate?: CourseCertificate | null }
       if (!response.ok || !result.profile) {
         setLessonError(result.error ?? 'We could not save this lesson. Please try again.')
         return
@@ -413,6 +433,7 @@ function App() {
       progressRequestId.current += 1
       window.localStorage.setItem(profileStorageKey, JSON.stringify(nextProfile))
       setProfile(nextProfile)
+      if (result.certificate) setCertificate(result.certificate)
       if (lessonId === '01-case-for-privacy') setIsLessonComplete(true)
       setCompletedLessonIds((lessonIds) => lessonIds.includes(lessonId) ? lessonIds : [...lessonIds, lessonId])
       if (lessonId === '07-stealf') {
@@ -475,7 +496,7 @@ function App() {
           })}</div>
           {isCourseComplete && <section className="course-complete-card" aria-label="Course complete">
             <img src="/cypherschool-course-complete.png" alt="CypherSchool Financial Privacy Course complete Gold 07 medal" />
-            <div><p className="eyebrow"><span />COURSE COMPLETE</p><h2>You completed<br /><em>CypherSchool.</em></h2><p>Seven chapters, one clearer view of financial privacy. Share your completion and invite someone to take their path.</p><div className="completion-actions"><button className="primary-button" type="button" onClick={shareCompletion}>SHARE ON X <span>↗</span></button><button className="path-home-button save-card-button" type="button" onClick={saveCompletionCard}>SAVE COMPLETION CARD</button></div></div>
+            <div><p className="eyebrow"><span />COURSE COMPLETE</p><h2>You completed<br /><em>CypherSchool.</em></h2><p>Seven chapters, one clearer view of financial privacy. Share your completion and invite someone to take their path.</p>{certificate && <a className="certificate-id" href={`/verify/${certificate.certificateId}`}>CERTIFICATE ID <code>{certificate.certificateId}</code><span>VERIFY →</span></a>}<div className="completion-actions"><button className="primary-button" type="button" onClick={shareCompletion}>SHARE ON X <span>↗</span></button><button className="path-home-button save-card-button" type="button" onClick={saveCompletionCard}>SAVE COMPLETION CARD</button></div></div>
           </section>}
         </section>
       </section>
@@ -487,6 +508,7 @@ function App() {
           <p className="certificate-awarded">AWARDED TO {profile?.alias?.toUpperCase()}</p>
           <h2 id="certificate-title">Your certificate<br /><em>is unlocked.</em></h2>
           <p className="certificate-copy">You completed all seven chapters of the CypherSchool Financial Privacy Course and earned the Gold 07 Medal.</p>
+          {certificate ? <a className="certificate-id certificate-modal-id" href={`/verify/${certificate.certificateId}`}>CERTIFICATE ID <code>{certificate.certificateId}</code><span>PUBLICLY VERIFIABLE →</span></a> : <p className="certificate-pending">ISSUING YOUR PRIVATE CERTIFICATE ID…</p>}
           <div className="completion-actions certificate-actions"><button className="primary-button" type="button" onClick={shareCompletion}>SHARE ON X <span>↗</span></button><button className="path-home-button save-card-button" type="button" onClick={saveCompletionCard}>SAVE CERTIFICATE</button></div>
           <button className="certificate-dashboard" type="button" onClick={() => { setIsCourseCertificateOpen(false); setActiveLessonId(null) }}>VIEW YOUR DASHBOARD <span>→</span></button>
         </div>
