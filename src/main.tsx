@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
+import QRCode from 'qrcode'
 import './styles.css'
 
 type Lesson = {
@@ -130,6 +131,27 @@ function CertificateVerificationFallback({ certificateId }: { certificateId: str
     {status === 'loading' ? <><p className="eyebrow"><span />VERIFYING CERTIFICATE</p><h1>Checking your<br /><em>credential.</em></h1></> : status === 'valid' ? <><p className="eyebrow"><span />✓ VERIFIED CERTIFICATE</p><h1>Financial Privacy<br /><em>Course Complete.</em></h1><p>Gold 07 Medal · Issued {issued}</p><code>{certificateId}</code><small>This verification reveals no learner identity or progress data.</small></> : <><p className="eyebrow"><span />CERTIFICATE NOT FOUND</p><h1>We could not verify<br /><em>this certificate.</em></h1><p>Check the Certificate ID and try again.</p></>}
     <a href="/">ENTER CYPHERSCHOOL →</a>
   </section></main>
+}
+
+function CertificateTemplate({ certificate, compact = false }: { certificate: CourseCertificate; compact?: boolean }) {
+  const [qrSource, setQrSource] = useState('')
+  const verificationUrl = `${window.location.origin}/verify/${certificate.certificateId}`
+
+  useEffect(() => {
+    QRCode.toDataURL(verificationUrl, { width: 240, margin: 0, color: { dark: '#F1F0E9', light: '#0B0D0C' } })
+      .then(setQrSource)
+      .catch(() => setQrSource(''))
+  }, [verificationUrl])
+
+  return <figure className={compact ? 'certificate-template certificate-template-compact' : 'certificate-template'}>
+    <img src="/cypherschool-certificate-template.png" alt="CypherSchool Financial Privacy Course completion certificate" />
+    <figcaption className="certificate-template-verification">
+      <span>CERTIFICATE ID</span>
+      <code>{certificate.certificateId}</code>
+      <small>VERIFY AT CYPHERSCHOOL.ONLINE/VERIFY</small>
+    </figcaption>
+    {qrSource && <img className="certificate-template-qr" src={qrSource} alt={`QR code to verify ${certificate.certificateId}`} />}
+  </figure>
 }
 
 function App() {
@@ -389,10 +411,36 @@ function App() {
     setIsAvatarPickerOpen(false)
   }
 
-  function saveCompletionCard() {
+  async function saveCompletionCard() {
+    if (!certificate) return
+    const template = new Image()
+    template.src = '/cypherschool-certificate-template.png'
+    await new Promise<void>((resolve, reject) => { template.onload = () => resolve(); template.onerror = () => reject(new Error('Template unavailable')) })
+    const canvas = document.createElement('canvas')
+    canvas.width = template.naturalWidth
+    canvas.height = template.naturalHeight
+    const context = canvas.getContext('2d')
+    if (!context) return
+    context.drawImage(template, 0, 0)
+    context.fillStyle = '#0b0d0c'
+    context.fillRect(canvas.width * .59, canvas.height * .735, canvas.width * .37, canvas.height * .2)
+    const qrSource = await QRCode.toDataURL(`${window.location.origin}/verify/${certificate.certificateId}`, { width: 230, margin: 0, color: { dark: '#F1F0E9', light: '#0B0D0C' } })
+    const qr = new Image()
+    qr.src = qrSource
+    await new Promise<void>((resolve, reject) => { qr.onload = () => resolve(); qr.onerror = () => reject(new Error('QR unavailable')) })
+    context.fillStyle = '#aeb9b0'
+    context.font = '16px monospace'
+    context.fillText('CERTIFICATE ID', canvas.width * .64, canvas.height * .785)
+    context.fillStyle = '#f1f0e9'
+    context.font = '24px monospace'
+    context.fillText(certificate.certificateId, canvas.width * .64, canvas.height * .83)
+    context.fillStyle = '#9cf58f'
+    context.font = '15px monospace'
+    context.fillText('VERIFY AT CYPHERSCHOOL.ONLINE/VERIFY', canvas.width * .64, canvas.height * .88)
+    context.drawImage(qr, canvas.width * .86, canvas.height * .745, canvas.width * .09, canvas.width * .09)
     const link = document.createElement('a')
-    link.href = '/cypherschool-course-complete.png'
-    link.download = 'cypherschool-course-complete.png'
+    link.href = canvas.toDataURL('image/png')
+    link.download = `cypherschool-certificate-${certificate.certificateId}.png`
     link.click()
   }
 
@@ -521,7 +569,7 @@ function App() {
             </article>
           })}</div>
           {isCourseComplete && <section className="course-complete-card" aria-label="Course complete">
-            <img src="/cypherschool-course-complete.png" alt="CypherSchool Financial Privacy Course complete Gold 07 medal" />
+            {certificate ? <CertificateTemplate certificate={certificate} compact /> : <img src="/cypherschool-course-complete.png" alt="CypherSchool Financial Privacy Course complete Gold 07 medal" />}
             <div><p className="eyebrow"><span />COURSE COMPLETE</p><h2>You completed<br /><em>CypherSchool.</em></h2><p>Seven chapters, one clearer view of financial privacy. Share your completion and invite someone to take their path.</p>{certificate && <a className="certificate-id" href={`/verify/${certificate.certificateId}`}>CERTIFICATE ID <code>{certificate.certificateId}</code><span>VERIFY →</span></a>}<div className="completion-actions"><button className="primary-button" type="button" onClick={shareCompletion}>SHARE ON X <span>↗</span></button><button className="path-home-button save-card-button" type="button" onClick={saveCompletionCard}>SAVE COMPLETION CARD</button></div></div>
           </section>}
         </section>
@@ -530,7 +578,7 @@ function App() {
         <div className="certificate-dialog">
           <button className="certificate-close" type="button" onClick={() => setIsCourseCertificateOpen(false)} aria-label="Close completion certificate">×</button>
           <p className="eyebrow"><span />COURSE COMPLETE</p>
-          <img src="/cypherschool-course-complete.png" alt="CypherSchool Financial Privacy Course complete gold medal" />
+          {certificate ? <CertificateTemplate certificate={certificate} /> : <img src="/cypherschool-course-complete.png" alt="CypherSchool Financial Privacy Course complete gold medal" />}
           <p className="certificate-awarded">AWARDED TO {profile?.alias?.toUpperCase()}</p>
           <h2 id="certificate-title">Your certificate<br /><em>is unlocked.</em></h2>
           <p className="certificate-copy">You completed all seven chapters of the CypherSchool Financial Privacy Course and earned the Gold 07 Medal.</p>
