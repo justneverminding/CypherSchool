@@ -17,7 +17,7 @@ a { color: inherit; text-decoration: none; }
 .shell { width: min(1180px, calc(100% - 48px)); margin-inline: auto; }
 .nav { height: 88px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #292e2b; }
 .wordmark { display: inline-flex; align-items: center; gap: 10px; font: 500 13px 'DM Mono', monospace; letter-spacing: .1em; }
-.wordmark-mark { display: grid; place-items: center; width: 25px; height: 25px; border: 1px solid #9dee91; color: #9dee91; font: 500 15px 'Instrument Serif', serif; }
+.wordmark-mark { display: block; width: 26px; height: 26px; object-fit: contain; }
 .nav-note, .nav-link, .eyebrow, .privacy-note, .lesson-meta, .lesson-action, .signal-topline, .signal-footer, .principle-number, .footer { font: 500 10px 'DM Mono', monospace; letter-spacing: .08em; }
 .nav-note { color: #7e8782; }.learner-area { position: relative; display: flex; align-items: center; gap: 13px; }.learner-welcome { margin: 0; color: #aeb9b0; font: 500 10px 'DM Mono', monospace; letter-spacing: .08em; }.learner-welcome strong { color: #c9ffbf; font-weight: 500; }.profile-orb { display: flex; align-items: center; gap: 7px; padding: 4px 8px 4px 4px; border: 1px solid #4d5c50; border-radius: 999px; background: #111814; color: #d9e2d8; font: 500 9px 'DM Mono', monospace; letter-spacing: .04em; }.profile-orb:hover { border-color: #9dee91; }.profile-orb > span, .profile-avatar { display: grid; place-items: center; width: 25px; height: 25px; border-radius: 50%; background: #9dee91; color: #0d120e; font: 600 14px 'Instrument Serif', Georgia, serif; }.profile-orb b { font-weight: 500; }.learner-profile { position: absolute; z-index: 5; top: calc(100% + 15px); right: 0; width: 350px; padding: 23px; border: 1px solid #526156; background: #101413; box-shadow: 0 26px 70px rgba(0, 0, 0, .45); }.learner-profile::before { content: ''; position: absolute; inset: 9px; border: 1px solid rgba(157, 238, 145, .1); pointer-events: none; }.profile-head, .profile-stats, .medal-header, .medal-grid, .profile-privacy { position: relative; z-index: 1; }.profile-head { display: flex; align-items: center; gap: 12px; }.profile-avatar { width: 41px; height: 41px; font-size: 22px; }.profile-head p, .medal-header, .profile-stats span, .medal small, .profile-privacy { font: 500 9px 'DM Mono', monospace; letter-spacing: .07em; }.profile-head p { margin: 0 0 4px; color: #7f8c82; }.profile-head h2 { margin: 0; font: 400 28px 'Instrument Serif', Georgia, serif; letter-spacing: -.04em; }.profile-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 22px 0; }.profile-stats div { padding: 13px; background: #151b17; }.profile-stats b { display: block; margin-bottom: 4px; color: #baffb1; font: 400 27px 'Instrument Serif', Georgia, serif; }.profile-stats span { color: #859188; }.medal-header { display: flex; justify-content: space-between; padding-top: 16px; border-top: 1px solid #374239; color: #9ca89e; }.medal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 14px; }.medal { display: grid; place-items: center; gap: 5px; min-height: 51px; border: 1px solid #303a33; background: #101311; color: #606a62; }.medal span { font: 500 12px 'DM Mono', monospace; }.medal small { font-size: 6px; }.medal.earned { border-color: #8ee286; background: #172719; color: #aaff9f; box-shadow: inset 0 0 18px rgba(157, 238, 145, .1); }.profile-privacy { margin: 17px 0 0; color: #68736b; line-height: 1.55; }
 .recovery-replace { position: relative; z-index: 1; display: grid; gap: 9px; margin-top: 19px; padding-top: 16px; border-top: 1px solid #374239; }.recovery-replace p { margin: 0; color: #9ca89e; font: 500 9px 'DM Mono', monospace; letter-spacing: .07em; }.recovery-replace small { color: #8e9a90; font: 11px/1.5 'Manrope', sans-serif; }.recovery-replace strong { padding: 12px; border: 1px solid #9dee91; background: #172419; color: #d0f8ca; font: 500 16px 'DM Mono', monospace; letter-spacing: .04em; text-align: center; }.recovery-replace button { justify-self: start; border: 0; padding: 0; background: transparent; color: #9dee91; font: 500 9px 'DM Mono', monospace; letter-spacing: .07em; }.recovery-replace button:hover { color: #d3ffcd; }.recovery-replace button:disabled { opacity: .6; cursor: wait; }
@@ -90,3 +90,63 @@ h1 em, h2 em { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400
 @media (max-width: 780px) { .shell { width: min(100% - 32px, 560px); }.nav { height: 68px; }.nav-note { display: none; }.learner-welcome { display: none; }.learner-profile { position: fixed; top: 78px; right: 16px; width: min(calc(100vw - 32px), 350px); }.hero { grid-template-columns: 1fr; gap: 45px; padding: 59px 0 57px; }.dashboard-shell { grid-template-columns: 1fr; gap: 42px; min-height: auto; padding: 57px 0; }.dashboard-intro h1 { font-size: clamp(53px, 16vw, 74px); }.dashboard-path .path-row { min-height: 54px; }.course-complete-card { grid-template-columns: 1fr; padding: 24px; }.course-complete-medal { width: 105px; height: 105px; }.signal-panel { height: 330px; }.principle { grid-template-columns: 1fr; gap: 18px; }.principle p { font-size: 27px; }.curriculum { padding: 76px 0; }.section-heading { display: block; }.section-summary { width: auto; margin-top: 23px; }.lesson-grid, .how-grid { grid-template-columns: 1fr; }.lesson-card { min-height: 248px; }.how-grid article { min-height: 190px; }.how-grid h3 { margin-top: 38px; }.stewardship { grid-template-columns: 54px 1fr; gap: 18px; }.stewardship > p { grid-column: 1 / -1; }.stewardship h2 { font-size: 31px; }.footer { flex-wrap: wrap; gap: 16px; }.footer span:nth-child(2) { display: none; }.alias-dialog { padding: 34px 28px; }.lesson-nav { height: 68px; }.lesson-nav span:nth-child(2) { display: none; }.manifesto-shell { padding: 55px 0 70px; }.manifesto-rail { margin-bottom: 43px; }.manifesto-rail span { flex: 1; }.manifesto-page { grid-template-columns: 1fr; gap: 43px; min-height: 0; }.manifesto-page h1 { font-size: clamp(52px, 17vw, 76px); }.manifesto-reading > p { font-size: 16px; }.manifesto-reading aside { font-size: 23px; } }
 @media (max-width: 390px) { .hero-actions { flex-direction: column; align-items: flex-start; gap: 20px; }.signal-label { font-size: 8px; }.signal-core { width: 126px; height: 126px; } }
 @media (max-width: 780px) { .activity-list { grid-template-columns: 1fr; }.activity-event, .activity-event:nth-child(2n) { border-right: 0; border-bottom: 1px solid #303a33; }.activity-event:last-child { border-bottom: 0; }.activity-event { grid-template-columns: 9px auto 1fr; padding: 13px 14px; }.activity-event time { grid-column: 2 / -1; justify-self: start; }.activity-feed-head { align-items: flex-start; flex-direction: column; gap: 9px; } }
+
+/* Theme system: the course remains editorial in either mode, while the C mark switches with its background. */
+.theme-toggle { position: fixed; z-index: 25; right: 24px; bottom: 24px; display: inline-flex; align-items: center; gap: 7px; border: 1px solid #526156; border-radius: 999px; padding: 9px 11px; background: rgba(12, 16, 14, .9); color: #d9e2d8; box-shadow: 0 10px 25px rgba(0, 0, 0, .18); font: 500 9px 'DM Mono', monospace; letter-spacing: .08em; backdrop-filter: blur(12px); }.theme-toggle:hover { border-color: #9dee91; color: #9dee91; }.theme-toggle span { color: #9dee91; font-size: 14px; line-height: 1; }
+html[data-theme='light'] { color: #121714; background: #f7f6f1; }
+html[data-theme='light'] body { background: #f7f6f1; }
+html[data-theme='light'] .dashboard-screen,
+html[data-theme='light'] .lesson-screen { background: radial-gradient(circle at 78% 42%, #d8f0d8 0, #f1f3ed 33%, #f7f6f1 68%); }
+html[data-theme='light'] .nav,
+html[data-theme='light'] .principle,
+html[data-theme='light'] .stewardship,
+html[data-theme='light'] .activity-feed,
+html[data-theme='light'] .lesson-nav { border-color: #c7d1c7; }
+html[data-theme='light'] .nav-note,
+html[data-theme='light'] .learner-welcome,
+html[data-theme='light'] .quote-attribution,
+html[data-theme='light'] .privacy-note,
+html[data-theme='light'] .section-summary,
+html[data-theme='light'] .hero-intro,
+html[data-theme='light'] .dashboard-intro > p:not(.eyebrow),
+html[data-theme='light'] .manifesto-reading > p,
+html[data-theme='light'] .lesson-kicker { color: #526058; }
+html[data-theme='light'] .learner-welcome strong,
+html[data-theme='light'] .nav-link,
+html[data-theme='light'] .lesson-back,
+html[data-theme='light'] .text-link { color: #1d2820; }
+html[data-theme='light'] .profile-orb,
+html[data-theme='light'] .path-panel,
+html[data-theme='light'] .lesson-card,
+html[data-theme='light'] .how-grid article,
+html[data-theme='light'] .activity-list,
+html[data-theme='light'] .dashboard-profile,
+html[data-theme='light'] .dashboard-profile-details,
+html[data-theme='light'] .learner-profile,
+html[data-theme='light'] .answer-options button { border-color: #b9c7ba; background: rgba(255, 255, 252, .84); color: #172018; box-shadow: none; }
+html[data-theme='light'] .signal-panel { border-color: #b9c7ba; background: radial-gradient(circle at 50% 50%, #d8f0d8 0, #edf3ed 48%, #e6ece5 100%); }
+html[data-theme='light'] .path-row { border-color: #c5d1c6; background: rgba(255, 255, 252, .68); color: #192219; }
+html[data-theme='light'] .path-row.next,
+html[data-theme='light'] .dashboard-profile:hover,
+html[data-theme='light'] .dashboard-profile[aria-expanded='true'],
+html[data-theme='light'] .answer-options button:hover,
+html[data-theme='light'] .answer-options button.selected { background: #e1f6df; color: #122014; }
+html[data-theme='light'] .lesson-card.locked { background: #edf0eb; }
+html[data-theme='light'] .lesson-card p,
+html[data-theme='light'] .how-grid p,
+html[data-theme='light'] .activity-feed-head small,
+html[data-theme='light'] .activity-privacy,
+html[data-theme='light'] .activity-event time { color: #627065; }
+html[data-theme='light'] .principle p,
+html[data-theme='light'] .dashboard-profile strong,
+html[data-theme='light'] .path-row b,
+html[data-theme='light'] .path-row span,
+html[data-theme='light'] .answer-options button { color: #121914; }
+html[data-theme='light'] .profile-stats div { background: #e9efe8; }
+html[data-theme='light'] .medal-header,
+html[data-theme='light'] .avatar-picker,
+html[data-theme='light'] .recovery-replace,
+html[data-theme='light'] .lesson-action,
+html[data-theme='light'] .manifesto-reading aside { border-color: #c4d0c4; }
+html[data-theme='light'] .theme-toggle { border-color: #aebcaf; background: rgba(255, 255, 252, .92); color: #1d2820; }
+@media (max-width: 780px) { .theme-toggle { right: 16px; bottom: 16px; } }

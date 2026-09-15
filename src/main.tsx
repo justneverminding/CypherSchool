@@ -105,6 +105,7 @@ function ZcashMark() {
 
 function App() {
   const [profile, setProfile] = useState<LearnerProfile | null>(null)
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => localStorage.getItem('cypherschool.theme') === 'light' ? 'light' : 'dark')
   const [isAliasDialogOpen, setIsAliasDialogOpen] = useState(false)
   const [alias, setAlias] = useState('')
   const [aliasError, setAliasError] = useState('')
@@ -130,6 +131,11 @@ function App() {
   const [isProgressLoaded, setIsProgressLoaded] = useState(false)
   const [isCourseCertificateOpen, setIsCourseCertificateOpen] = useState(false)
   const [activity, setActivity] = useState<AnonymousActivity[]>([])
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    localStorage.setItem('cypherschool.theme', theme)
+  }, [theme])
   const progressRequestId = useRef(0)
 
   useEffect(() => {
@@ -426,16 +432,19 @@ function App() {
   const nextLesson = lessons.find((lesson) => lesson.id === nextBuiltLessonId())
   const continuePathLabel = nextLesson ? `CONTINUE: ${nextLesson.number} — ${nextLesson.title.toUpperCase()}` : 'VIEW NEXT PATH'
   const selectedAvatarStyle = { backgroundImage: 'url(/cypherschool-pfps.png)', backgroundSize: '500% 400%', backgroundPosition: `${((profile?.avatarIndex ?? 0) % 5) * 25}% ${Math.floor((profile?.avatarIndex ?? 0) / 5) * 33.333}%` }
+  const wordmarkSource = theme === 'light' ? '/cypherschool-c-mark-light.png' : '/cypherschool-c-mark-dark.png'
+  const themeToggle = <button className="theme-toggle" type="button" onClick={() => setTheme((current) => current === 'dark' ? 'light' : 'dark')} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`} title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}><span aria-hidden="true">{theme === 'dark' ? '☼' : '◐'}</span>{theme === 'dark' ? 'LIGHT' : 'DARK'}</button>
 
   if (isDashboardOpen && !activeLessonId) {
     return <main className="dashboard-screen">
       <nav className="nav shell" aria-label="Dashboard navigation">
         <button className="wordmark nav-button" type="button" onClick={() => setIsDashboardOpen(false)} aria-label="Return to CypherSchool home">
-          <span className="wordmark-mark">C</span><span>CYPHERSCHOOL</span>
+          <img className="wordmark-mark" src={wordmarkSource} alt="" /><span>CYPHERSCHOOL</span>
         </button>
         <span className="nav-note">YOUR 7 CHAPTER LEARNING PATH</span>
         <button className="nav-link nav-button" type="button" onClick={logOut}>LOG OUT <span aria-hidden="true">↗</span></button>
       </nav>
+      {themeToggle}
       <section className="dashboard-shell shell">
         <div className="dashboard-intro">
           <p className="eyebrow"><span />YOUR LEARNING SPACE</p>
@@ -730,7 +739,7 @@ function App() {
     <main>
       <nav className="nav shell" aria-label="Primary navigation">
         <a className="wordmark" href="#top" aria-label="CypherSchool home">
-          <span className="wordmark-mark">C</span>
+          <img className="wordmark-mark" src={wordmarkSource} alt="" />
           <span>CYPHERSCHOOL</span>
         </a>
         {profile ? (
@@ -756,6 +765,7 @@ function App() {
           </div>
         ) : <span className="nav-note">A PRIVACY LEARNING LAB</span>}
       </nav>
+      {themeToggle}
 
       <section className="hero shell" id="top">
         <div className="hero-copy">
