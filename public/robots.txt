@@ -2,5 +2,6 @@ User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /verify/
+Disallow: /course-complete
 
 Sitemap: https://cypherschool.online/sitemap.xml
