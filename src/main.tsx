@@ -154,11 +154,115 @@ function CertificateTemplate({ certificate, compact = false }: { certificate: Co
   </figure>
 }
 
+type LegalPageName = 'terms' | 'privacy' | 'privacy-settings'
+type InfoPageName = 'faq' | 'blog'
+const donationAddress = 'u1fjhk803p7p38ge2r463ne62vymmduatv6yz42qr8f65pch8xff5ls7gczqc2lwds53a44jg55q0ktdwg2puqcyqfnf2hx75nu7zm5e7xegeg5uj088kszzavv3ajqqrjvclg0wjyl0wgzz5my84urq9584amu6s77w5e06x42uhetvvv'
+const donationMemo = 'CypherSchool'
+const donationUri = `zcash:${donationAddress}?memo=Q3lwaGVyU2Nob29s&message=Support%20CypherSchool&label=CypherSchool`
+
+function DonatePage({ theme, setTheme }: { theme: 'dark' | 'light'; setTheme: (theme: 'dark' | 'light') => void }) {
+  const [qrSource, setQrSource] = useState('')
+  const [copyStatus, setCopyStatus] = useState('COPY ADDRESS')
+
+  useEffect(() => {
+    QRCode.toDataURL(donationUri, { width: 960, margin: 2, errorCorrectionLevel: 'H', color: { dark: '#101410', light: '#FFFFFF' } })
+      .then(setQrSource)
+      .catch(() => setQrSource(''))
+  }, [])
+
+  const copyAddress = async () => {
+    try {
+      await navigator.clipboard.writeText(donationAddress)
+      setCopyStatus('ADDRESS COPIED')
+    } catch {
+      setCopyStatus('COPY UNAVAILABLE')
+    }
+  }
+
+  return <main className="donate-screen">
+    <nav className="nav shell" aria-label="Donation navigation"><a className="wordmark" href="/"><img className="wordmark-mark" src={theme === 'light' ? '/cypherschool-c-mark-light.png' : '/cypherschool-c-mark-dark.png'} alt="" /><span>CYPHERSCHOOL</span></a><a className="nav-link" href="/">RETURN TO SCHOOL <span aria-hidden="true">↗</span></a></nav>
+    <button className="theme-toggle" type="button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}><span aria-hidden="true">{theme === 'dark' ? '☼' : '◐'}</span>{theme === 'dark' ? 'LIGHT' : 'DARK'}</button>
+    <section className="donate-shell shell">
+      <div className="donate-copy"><p className="eyebrow"><span />KEEP PRIVACY EDUCATION FREE</p><h1>Support the<br /><em>school.</em></h1><p className="donate-intro">If CypherSchool has helped you see financial privacy more clearly, you can support its continued building with a private Zcash donation.</p><a className="guardian-credit" href="https://x.com/dguardian0" target="_blank" rel="noreferrer"><img className="guardian-mark" src="/guardian-pfp.png" alt="Guardian" /><span><small>BUILT BY</small><strong>Guardian <i>↗</i></strong></span></a></div>
+      <section className="donate-card" aria-label="Donate Zcash privately"><p className="eyebrow"><span />ZCASH · SHIELDED DONATION</p><div className="donation-qr">{qrSource ? <img src={qrSource} alt="QR code for a shielded Zcash donation to CypherSchool" /> : <div className="qr-loading">PREPARING QR…</div>}<span className="qr-mark"><img src="/cypherschool-c-mark-light.png" alt="" /></span></div><p className="donation-memo">MEMO <b>{donationMemo}</b></p><p className="donation-address">{donationAddress}</p><div className="donation-actions"><button type="button" onClick={copyAddress}>{copyStatus}</button><a href={donationUri}>OPEN IN WALLET <span>↗</span></a></div><p className="donation-note">Use a wallet that supports shielded Zcash payments. The memo is included in the payment request for compatible wallets.</p></section>
+    </section>
+    <footer className="footer shell"><span>© 2026 CYPHERSCHOOL</span><span>PRIVACY IS THE POWER.</span><a href="/">RETURN TO SCHOOL ↑</a></footer>
+  </main>
+}
+
+function InfoPage({ page, theme, setTheme }: { page: InfoPageName; theme: 'dark' | 'light'; setTheme: (theme: 'dark' | 'light') => void }) {
+  const isFaq = page === 'faq'
+  return <main className="legal-screen info-screen">
+    <nav className="nav shell" aria-label="Information navigation"><a className="wordmark" href="/"><img className="wordmark-mark" src={theme === 'light' ? '/cypherschool-c-mark-light.png' : '/cypherschool-c-mark-dark.png'} alt="" /><span>CYPHERSCHOOL</span></a><a className="nav-link" href="/">RETURN TO SCHOOL <span aria-hidden="true">↗</span></a></nav>
+    <button className="theme-toggle" type="button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}><span aria-hidden="true">{theme === 'dark' ? '☼' : '◐'}</span>{theme === 'dark' ? 'LIGHT' : 'DARK'}</button>
+    <section className="legal-shell shell">
+      <p className="eyebrow"><span />CYPHERSCHOOL · INFORMATION</p>
+      <h1>{isFaq ? <>Questions,<br /><em>answered.</em></> : <>Notes from<br /><em>the school.</em></>}</h1>
+      {isFaq ? <div className="faq-list">
+        <details open><summary>What is CypherSchool?</summary><p>CypherSchool is a free, interactive learning platform for understanding financial privacy, zero-knowledge proofs, and private computation one short lesson at a time.</p></details>
+        <details><summary>Do I need a wallet or an account?</summary><p>No wallet connection or email address is required. You can use an alias-only learning profile to save progress on your device.</p></details>
+        <details><summary>Is this financial or investment advice?</summary><p>No. CypherSchool is educational and uses fictional examples. It does not provide financial, legal, tax, security, or investment advice.</p></details>
+        <details><summary>What data does CypherSchool keep?</summary><p>The platform keeps the limited information needed for an alias-based learning profile and certificate verification. Read the full <a href="/privacy">Privacy Policy</a> for the exact details.</p></details>
+        <details><summary>How do Zcash donations work?</summary><p>The Support page provides a shielded Zcash payment request, including the CypherSchool memo for wallets that support it. Donations are optional and do not change access to the course.</p></details>
+      </div> : <div className="blog-list">
+        <article><p className="eyebrow"><span />FOUNDATION</p><h2>Privacy is not secrecy.</h2><p>Privacy is the ability to decide what you reveal, to whom, and in what context. It is a practical condition for ordinary life—not a signal of wrongdoing.</p><a href="/#curriculum">START THE FIRST LESSON →</a></article>
+        <article><p className="eyebrow"><span />ZERO KNOWLEDGE</p><h2>Prove without revealing.</h2><p>Zero-knowledge proofs make it possible to demonstrate that a statement is true without disclosing the private information behind it.</p><a href="/#curriculum">EXPLORE THE LEARNING PATH →</a></article>
+        <article><p className="eyebrow"><span />THE SCHOOL</p><h2>One short lesson at a time.</h2><p>CypherSchool is built for clarity: a focused idea, a fictional scenario, and a quick check before the next step.</p><a href="/#curriculum">ENTER CYPHERSCHOOL →</a></article>
+      </div>}
+    </section>
+    <footer className="footer shell"><span>© 2026 CYPHERSCHOOL</span><span>PRIVACY IS THE POWER.</span><a href="/">RETURN TO SCHOOL ↑</a></footer>
+  </main>
+}
+
+function LegalPage({ page, theme, setTheme }: { page: LegalPageName; theme: 'dark' | 'light'; setTheme: (theme: 'dark' | 'light') => void }) {
+  const [deviceDataCleared, setDeviceDataCleared] = useState(false)
+  const title = page === 'terms' ? 'Terms of Service' : page === 'privacy' ? 'Privacy Policy' : 'Privacy Settings'
+  const clearDeviceData = () => {
+    window.localStorage.removeItem(profileStorageKey)
+    window.localStorage.removeItem('cypherschool.theme')
+    setDeviceDataCleared(true)
+  }
+
+  return <main className="legal-screen">
+    <nav className="nav shell" aria-label="Legal navigation"><a className="wordmark" href="/"><img className="wordmark-mark" src={theme === 'light' ? '/cypherschool-c-mark-light.png' : '/cypherschool-c-mark-dark.png'} alt="" /><span>CYPHERSCHOOL</span></a><a className="nav-link" href="/">RETURN TO SCHOOL <span aria-hidden="true">↗</span></a></nav>
+    <button className="theme-toggle" type="button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`} title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}><span aria-hidden="true">{theme === 'dark' ? '☼' : '◐'}</span>{theme === 'dark' ? 'LIGHT' : 'DARK'}</button>
+    <section className="legal-shell shell">
+      <p className="eyebrow"><span />CYPHERSCHOOL · UPDATED 16 SEPTEMBER 2026</p>
+      <h1>{title === 'Privacy Settings' ? <>Control your<br /><em>device data.</em></> : <>{title.split(' ')[0]}<br /><em>{title.split(' ').slice(1).join(' ')}.</em></>}</h1>
+      {page === 'terms' && <div className="legal-copy">
+        <p className="legal-lead">CypherSchool is a learning platform for short, interactive lessons about financial privacy, zero-knowledge proofs, and private computation.</p>
+        <h2>Using CypherSchool</h2><p>You may use CypherSchool for lawful, personal learning. Do not interfere with the service, attempt to access another learner’s profile, or use the service to violate another person’s privacy or rights.</p>
+        <h2>Learning, not advice</h2><p>CypherSchool is educational. It does not provide financial, investment, legal, tax, security, or compliance advice. Lessons and examples are illustrative; make independent decisions and seek qualified advice where appropriate.</p>
+        <h2>Your learning profile</h2><p>You choose an alias to save progress. Keep your recovery code private: it can restore access to your learning profile. You are responsible for activity performed through a device or recovery code you control.</p>
+        <h2>Service changes</h2><p>We may update, pause, or improve CypherSchool and these terms. If a change is material, the updated date on this page will change. Continued use after an update means you accept the revised terms.</p>
+        <h2>Contact</h2><p>Questions about these terms can be sent through CypherSchool’s official support channel when one is made available.</p>
+      </div>}
+      {page === 'privacy' && <div className="legal-copy">
+        <p className="legal-lead">Privacy is part of the lesson. This policy describes the limited data CypherSchool uses to provide an alias-based learning experience.</p>
+        <h2>What we collect</h2><p>When you create a learning profile, we store your alias, a random profile ID, your avatar choice, earned XP, lesson completion records, and timestamps. We store only cryptographic hashes of your session token and recovery code—not the readable values.</p>
+        <h2>What stays on your device</h2><p>Your device stores your profile ID, alias, session token, avatar choice, and theme preference in local storage so you can continue learning. You can clear that device data from Privacy Settings or by logging out.</p>
+        <h2>Anonymous activity signal</h2><p>CypherSchool may show recent starts and completions as a random label such as <code>anon_123</code>. That label is generated separately and is not connected to an alias, profile, wallet, or recovery code.</p>
+        <h2>What we do not collect</h2><p>CypherSchool does not require a wallet connection. It does not use advertising trackers or sell personal data. We do not ask for a real name, email address, payment details, or your financial activity to use the lessons.</p>
+        <h2>Certificates</h2><p>If you complete the course, we store a certificate ID and its cryptographic hash so it can be verified. Verification shows only that a certificate is valid and when it was issued; it does not reveal your alias or lesson history.</p>
+        <h2>Retention and choices</h2><p>Learning-profile records are retained while CypherSchool operates so progress can be restored with your alias and recovery code. Clearing data from a device signs that device out; it does not erase the server-side learning profile. Do not create a profile if you do not want this limited record retained.</p>
+        <h2>Policy updates</h2><p>If this policy changes, we will update the date at the top of this page.</p>
+      </div>}
+      {page === 'privacy-settings' && <div className="legal-copy privacy-controls">
+        <p className="legal-lead">CypherSchool has no advertising or analytics controls because it does not use advertising trackers. These settings control information kept by this browser.</p>
+        <section className="privacy-setting"><div><h2>Appearance</h2><p>Your theme choice is stored only in this browser.</p></div><div className="theme-choice" role="group" aria-label="Color theme"><button className={theme === 'dark' ? 'selected' : ''} type="button" onClick={() => setTheme('dark')}>DARK</button><button className={theme === 'light' ? 'selected' : ''} type="button" onClick={() => setTheme('light')}>LIGHT</button></div></section>
+        <section className="privacy-setting"><div><h2>Device session</h2><p>Remove the saved profile session, alias, and theme preference from this browser. This signs out this device only; your recoverable learning profile remains on the service.</p></div><button className="privacy-action" type="button" onClick={clearDeviceData}>{deviceDataCleared ? 'DEVICE DATA CLEARED' : 'CLEAR DEVICE DATA'}</button></section>
+        <section className="privacy-note-card"><h2>No wallet. No ad tracking.</h2><p>CypherSchool does not connect to wallets, collect payment information, or use advertising trackers. Read the <a href="/privacy">Privacy Policy</a> for the full description of the limited data used to run the learning experience.</p></section>
+      </div>}
+    </section>
+    <footer className="footer shell"><span>© 2026 CYPHERSCHOOL</span><span>PRIVACY IS THE POWER.</span><a href="/">RETURN TO SCHOOL ↑</a></footer>
+  </main>
+}
+
 function App() {
   const verificationPath = window.location.pathname.match(/^\/verify\/([^/]+)$/)
   if (verificationPath) return <CertificateVerificationFallback certificateId={decodeURIComponent(verificationPath[1]).toUpperCase()} />
   const [profile, setProfile] = useState<LearnerProfile | null>(null)
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => localStorage.getItem('cypherschool.theme') === 'light' ? 'light' : 'dark')
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => localStorage.getItem('cypherschool.theme') === 'dark' ? 'dark' : 'light')
   const [isAliasDialogOpen, setIsAliasDialogOpen] = useState(false)
   const [alias, setAlias] = useState('')
   const [aliasError, setAliasError] = useState('')
@@ -260,6 +364,12 @@ function App() {
     const interval = window.setInterval(loadActivity, 20_000)
     return () => { isCurrent = false; window.clearInterval(interval) }
   }, [])
+
+  const legalPath = window.location.pathname.replace(/^\//, '') as LegalPageName
+  if (window.location.pathname === '/donate') return <DonatePage theme={theme} setTheme={setTheme} />
+  const infoPath = window.location.pathname.replace(/^\//, '') as InfoPageName
+  if (infoPath === 'faq' || infoPath === 'blog') return <InfoPage page={infoPath} theme={theme} setTheme={setTheme} />
+  if (legalPath === 'terms' || legalPath === 'privacy' || legalPath === 'privacy-settings') return <LegalPage page={legalPath} theme={theme} setTheme={setTheme} />
 
   function openAliasDialog() {
     setAlias(profile?.alias ?? '')
@@ -931,10 +1041,14 @@ function App() {
         <p className="activity-privacy">A new random label is generated for each signal. It is never connected to an alias, profile, wallet, or recovery code.</p>
       </section>
 
-      <footer className="footer shell">
-        <span>© 2026 CYPHERSCHOOL</span>
-        <span>PRIVACY IS A PRACTICE.</span>
-        <a href="#top">BACK TO TOP ↑</a>
+      <footer className="footer footer-navigation shell">
+        <div className="footer-columns">
+          <section className="footer-brand"><a className="wordmark" href="/"><img className="wordmark-mark" src={wordmarkSource} alt="" /><span>CYPHERSCHOOL</span></a><p>Short, interactive lessons about financial privacy, zero-knowledge proofs, and private computation.</p></section>
+          <section><p>SCHOOL</p><a href="#curriculum">LEARN</a><a href="/donate">SUPPORT CYPHERSCHOOL</a></section>
+          <section><p>POLICIES</p><a href="/terms">TERMS OF SERVICE</a><a href="/privacy">PRIVACY POLICY</a><a href="/privacy-settings">PRIVACY SETTINGS</a></section>
+          <section><p>INFO</p><a href="/faq">FAQS</a><a href="/blog">BLOG</a></section>
+        </div>
+        <div className="footer-meta"><small>© 2026 CYPHERSCHOOL</small><a href="#top">BACK TO TOP ↑</a></div>
       </footer>
 
       {isEntryChoiceOpen && (
