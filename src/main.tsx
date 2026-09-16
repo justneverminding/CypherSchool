@@ -262,7 +262,7 @@ function App() {
   const verificationPath = window.location.pathname.match(/^\/verify\/([^/]+)$/)
   if (verificationPath) return <CertificateVerificationFallback certificateId={decodeURIComponent(verificationPath[1]).toUpperCase()} />
   const [profile, setProfile] = useState<LearnerProfile | null>(null)
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => localStorage.getItem('cypherschool.theme') === 'dark' ? 'dark' : 'light')
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => localStorage.getItem('cypherschool.theme') === 'light' ? 'light' : 'dark')
   const [isAliasDialogOpen, setIsAliasDialogOpen] = useState(false)
   const [alias, setAlias] = useState('')
   const [aliasError, setAliasError] = useState('')
