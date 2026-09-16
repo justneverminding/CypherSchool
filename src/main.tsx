@@ -680,7 +680,7 @@ function App() {
           })}</div>
           {isCourseComplete && <section className="course-complete-card" aria-label="Course complete">
             {certificate ? <CertificateTemplate certificate={certificate} compact /> : <img src="/cypherschool-course-complete.png" alt="CypherSchool Financial Privacy Course complete Gold 07 medal" />}
-            <div><p className="eyebrow"><span />COURSE COMPLETE</p><h2>You completed<br /><em>CypherSchool.</em></h2><p>Seven chapters, one clearer view of financial privacy. Share your completion and invite someone to take their path.</p>{certificate && <a className="certificate-id" href={`/verify/${certificate.certificateId}`}>CERTIFICATE ID <code>{certificate.certificateId}</code><span>VERIFY →</span></a>}<div className="completion-actions"><button className="primary-button" type="button" onClick={shareCompletion}>SHARE ON X <span>↗</span></button><button className="path-home-button save-card-button" type="button" onClick={saveCompletionCard}>SAVE COMPLETION CARD</button></div></div>
+            <div><p className="eyebrow"><span />COURSE COMPLETE</p><h2>You completed<br /><em>CypherSchool.</em></h2><p>Seven chapters, one clearer view of financial privacy. Share your completion and invite someone to take their path.</p>{certificate && <a className="certificate-id" href={`/verify/${certificate.certificateId}`}>CERTIFICATE ID <code>{certificate.certificateId}</code><span>VERIFY →</span></a>}<div className="completion-actions"><button className="primary-button" type="button" onClick={shareCompletion}>SHARE ON X <span>↗</span></button><button className="path-home-button save-card-button" type="button" onClick={saveCompletionCard}>DOWNLOAD CERTIFICATE</button></div></div>
           </section>}
         </section>
       </section>
@@ -693,7 +693,7 @@ function App() {
           <h2 id="certificate-title">Your certificate<br /><em>is unlocked.</em></h2>
           <p className="certificate-copy">You completed all seven chapters of the CypherSchool Financial Privacy Course and earned the Gold 07 Medal.</p>
           {certificate ? <a className="certificate-id certificate-modal-id" href={`/verify/${certificate.certificateId}`}>CERTIFICATE ID <code>{certificate.certificateId}</code><span>PUBLICLY VERIFIABLE →</span></a> : <p className="certificate-pending">ISSUING YOUR PRIVATE CERTIFICATE ID…</p>}
-          <div className="completion-actions certificate-actions"><button className="primary-button" type="button" onClick={shareCompletion}>SHARE ON X <span>↗</span></button><button className="path-home-button save-card-button" type="button" onClick={saveCompletionCard}>SAVE CERTIFICATE</button></div>
+          <div className="completion-actions certificate-actions"><button className="primary-button" type="button" onClick={shareCompletion}>SHARE ON X <span>↗</span></button><button className="path-home-button save-card-button" type="button" onClick={saveCompletionCard}>DOWNLOAD CERTIFICATE</button></div>
           <button className="certificate-dashboard" type="button" onClick={() => { setIsCourseCertificateOpen(false); setActiveLessonId(null) }}>VIEW YOUR DASHBOARD <span>→</span></button>
         </div>
       </section>}
