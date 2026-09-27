@@ -453,15 +453,22 @@ function App() {
     const qr = new Image()
     qr.src = qrSource
     await new Promise<void>((resolve, reject) => { qr.onload = () => resolve(); qr.onerror = () => reject(new Error('QR unavailable')) })
+    const verificationX = canvas.width * .62
+    const verificationMaxWidth = canvas.width * .22
+    const drawFittedText = (text: string, preferredSize: number, y: number, color: string) => {
+      let size = preferredSize
+      context.fillStyle = color
+      context.font = `${size}px monospace`
+      while (context.measureText(text).width > verificationMaxWidth && size > 7) {
+        size -= 1
+        context.font = `${size}px monospace`
+      }
+      context.fillText(text, verificationX, y)
+    }
     context.fillStyle = '#aeb9b0'
-    context.font = '16px monospace'
-    context.fillText('CERTIFICATE ID', canvas.width * .64, canvas.height * .785)
-    context.fillStyle = '#f1f0e9'
-    context.font = '24px monospace'
-    context.fillText(certificate.certificateId, canvas.width * .64, canvas.height * .83)
-    context.fillStyle = '#9cf58f'
-    context.font = '15px monospace'
-    context.fillText('VERIFY AT CYPHERSCHOOL.ONLINE/VERIFY', canvas.width * .64, canvas.height * .88)
+    drawFittedText('CERTIFICATE ID', 16, canvas.height * .785, '#aeb9b0')
+    drawFittedText(certificate.certificateId, 24, canvas.height * .83, '#f1f0e9')
+    drawFittedText('VERIFY AT CYPHERSCHOOL.ONLINE/VERIFY', 15, canvas.height * .88, '#9cf58f')
     context.drawImage(qr, canvas.width * .86, canvas.height * .745, canvas.width * .09, canvas.width * .09)
     const link = document.createElement('a')
     link.href = canvas.toDataURL('image/png')
@@ -963,6 +970,29 @@ function App() {
         </div>
       </section>
 
+      <section className="stewardship stewardship-feature shell" id="stealf-lab" aria-labelledby="stealf-feature-title">
+        <div className="stewardship-feature-top">
+          <div className="stewardship-mark" aria-label="Stealf logo">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <path d="M16 47C16 27.7 31.7 12 51 12h37v15H51c-11 0-20 9-20 20H16Z" />
+              <path d="M84 53c0 19.3-15.7 35-35 35H12V73h37c11 0 20-9 20-20h15Z" />
+            </svg>
+          </div>
+          <div className="stewardship-feature-meta"><span>FEATURED PRACTICAL LAB</span><span>MISSION 07 / STEALF</span></div>
+        </div>
+        <div className="stewardship-feature-copy">
+          <p className="eyebrow"><span />FROM PRINCIPLE TO PRACTICE</p>
+          <h2 id="stealf-feature-title">Privacy, applied<br /><em>to real choices.</em></h2>
+          <p>See how Stealf frames public and private financial activity as a contextual choice—not a one-size-fits-all rule.</p>
+        </div>
+        <div className="stewardship-feature-rail" aria-label="Stealf wallet choices">
+          <div><span>PUBLIC WALLET</span><strong>VISIBLE ACTIVITY</strong></div>
+          <div className="private"><span>PRIVATE WALLET</span><strong>CONFIDENTIAL ACTIVITY</strong></div>
+          <a href="https://www.stealf.xyz" target="_blank" rel="noreferrer">EXPLORE STEALF <span aria-hidden="true">↗</span></a>
+        </div>
+        <p className="stewardship-disclaimer">EDUCATIONAL OVERVIEW · NO WALLET OR REAL TRANSACTION REQUIRED</p>
+      </section>
+
       <section className="principle shell" aria-label="CypherSchool principle">
         <span className="principle-number">// MANIFESTO</span>
         <p>“Privacy is not <em>Secrecy.</em>” <small>— ERIC HUGHES, 9 MARCH 1993</small></p>
@@ -976,20 +1006,6 @@ function App() {
           <article><span>02</span><h3>Fictional scenarios</h3><p>Learn from safe examples, not real wallets, balances, identities, or personal financial data.</p></article>
           <article><span>03</span><h3>Your learning path</h3><p>Choose an alias to save XP and progress. Restore it anywhere with the recovery code you keep.</p></article>
         </div>
-      </section>
-
-      <section className="stewardship shell">
-        <div className="stewardship-mark" aria-label="Stealf logo">
-          <svg viewBox="0 0 100 100" aria-hidden="true">
-            <path d="M16 47C16 27.7 31.7 12 51 12h37v15H51c-11 0-20 9-20 20H16Z" />
-            <path d="M84 53c0 19.3-15.7 35-35 35H12V73h37c11 0 20-9 20-20h15Z" />
-          </svg>
-        </div>
-        <div>
-          <p className="eyebrow"><span />FROM PRINCIPLE TO PRACTICE</p>
-          <h2>Understand the problem<br />before choosing the tools.</h2>
-        </div>
-        <p>CypherSchool uses fictional scenarios to build privacy literacy. The final chapter introduces Stealf as one practical application of private financial infrastructure.</p>
       </section>
 
       <section className="activity-feed shell" aria-live="polite" aria-label="Anonymous learning activity">
