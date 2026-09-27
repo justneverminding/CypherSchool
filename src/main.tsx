@@ -227,7 +227,10 @@ function App() {
     const requestId = ++progressRequestId.current
     fetch('/api/progress', { headers: { 'x-cypherschool-profile': profile.id, 'x-cypherschool-session': profile.sessionToken } })
       .then(async (response) => {
-        if (!response.ok) return
+        if (!response.ok) {
+          if (response.status === 401 && requestId === progressRequestId.current) handleExpiredSession(profile)
+          return
+        }
         const result = await response.json() as { profile?: Omit<LearnerProfile, 'sessionToken'>; lessons?: Array<{ lessonId: string; completed: number }> }
         if (requestId !== progressRequestId.current) return
         if (result.profile) {
@@ -252,7 +255,13 @@ function App() {
     }
     let isCurrent = true
     fetch('/api/certificates/me', { headers: { 'x-cypherschool-profile': profile.id, 'x-cypherschool-session': profile.sessionToken } })
-      .then(async (response) => response.ok ? response.json() as Promise<{ certificate?: CourseCertificate | null }> : { certificate: null })
+      .then(async (response) => {
+        if (response.status === 401) {
+          handleExpiredSession(profile)
+          return { certificate: null }
+        }
+        return response.ok ? response.json() as Promise<{ certificate?: CourseCertificate | null }> : { certificate: null }
+      })
       .then((result) => { if (isCurrent) setCertificate(result.certificate ?? null) })
       .catch(() => undefined)
     return () => { isCurrent = false }
@@ -296,6 +305,33 @@ function App() {
     setAliasError('')
     setRecoveryCodeInput('')
     setNewRecoveryCode(null)
+    setIsRestoring(true)
+    setIsEntryChoiceOpen(false)
+    setIsAliasDialogOpen(true)
+  }
+
+  function handleExpiredSession(expiredProfile: LearnerProfile) {
+    progressRequestId.current += 1
+    window.localStorage.removeItem(profileStorageKey)
+    setProfile(null)
+    setCompletedLessonIds([])
+    setIsLessonComplete(false)
+    setIsProgressLoaded(false)
+    setIsProfileOpen(false)
+    setIsAchievementsOpen(false)
+    setIsAvatarPickerOpen(false)
+    setActiveLessonId(null)
+    setCompletedMissionId(null)
+    setRankAdvancedMissionId(null)
+    setNewlyUnlockedAchievementIds([])
+    setIsDashboardOpen(false)
+    setIsCourseCertificateOpen(false)
+    setCertificate(null)
+    setAlias(expiredProfile.alias)
+    setAliasError('Your device session expired. Enter your recovery code to restore your learning path.')
+    setRecoveryCodeInput('')
+    setNewRecoveryCode(null)
+    setRecoveryReplacementError('')
     setIsRestoring(true)
     setIsEntryChoiceOpen(false)
     setIsAliasDialogOpen(true)
@@ -428,6 +464,10 @@ function App() {
   async function selectAvatar(avatarIndex: number) {
     if (!profile) return
     const response = await fetch('/api/profiles/avatar', { method: 'PUT', headers: { 'content-type': 'application/json', 'x-cypherschool-profile': profile.id, 'x-cypherschool-session': profile.sessionToken }, body: JSON.stringify({ avatarIndex }) })
+    if (response.status === 401) {
+      handleExpiredSession(profile)
+      return
+    }
     const result = await response.json() as { profile?: Omit<LearnerProfile, 'sessionToken'> }
     if (!response.ok || !result.profile) return
     const nextProfile = { ...result.profile, sessionToken: profile.sessionToken }
@@ -492,6 +532,10 @@ function App() {
         headers: { 'x-cypherschool-profile': profile.id, 'x-cypherschool-session': profile.sessionToken },
       })
       const result = await response.json() as { error?: string; recoveryCode?: string }
+      if (response.status === 401) {
+        handleExpiredSession(profile)
+        return
+      }
       if (!response.ok || !result.recoveryCode) {
         setRecoveryReplacementError(result.error ?? 'We could not generate a recovery code. Try again shortly.')
         return
@@ -535,6 +579,10 @@ function App() {
         body: JSON.stringify({ lessonId, completed: true, score: 100, xpEarned: MISSION_XP_REWARD }),
       })
       const result = await response.json() as { error?: string; profile?: Omit<LearnerProfile, 'sessionToken'>; certificate?: CourseCertificate | null }
+      if (response.status === 401) {
+        handleExpiredSession(profile)
+        return
+      }
       if (!response.ok || !result.profile) {
         setLessonError(result.error ?? 'We could not save this lesson. Please try again.')
         return
